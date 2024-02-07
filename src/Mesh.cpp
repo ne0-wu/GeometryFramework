@@ -9,16 +9,10 @@ Mesh::Mesh(std::string &filename)
 	}
 }
 
-Mesh::Mesh(const std::vector<std::vector<int>> &faceList, const std::vector<std::vector<float>> &vertexList)
+Mesh::Mesh(std::vector<double> vertexList, std::vector<unsigned int> faceList)
 {
-	for (const auto &face : faceList)
-	{
-		std::vector<VertexHandle> faceVertices;
-		for (const auto &vertexIndex : face)
-		{
-			VertexHandle vh = this->add_vertex(Point(vertexList[vertexIndex][0], vertexList[vertexIndex][1], vertexList[vertexIndex][2]));
-			faceVertices.push_back(vh);
-		}
-		this->add_face(faceVertices);
-	}
+	for (int i = 0; i < vertexList.size(); i += 3)
+		this->add_vertex(Mesh::Point(vertexList[i], vertexList[i + 1], vertexList[i + 2]));
+	for (int i = 0; i < faceList.size(); i += 3)
+		this->add_face(Mesh::VertexHandle(faceList[i]), Mesh::VertexHandle(faceList[i + 1]), Mesh::VertexHandle(faceList[i + 2]));
 }
