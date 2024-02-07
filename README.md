@@ -1,4 +1,4 @@
-## 第三方库
+## Required Third Party Libraries
 
 * OpenGL 3.3
 * [GLAD](https://glad.dav1d.de/)
