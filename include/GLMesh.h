@@ -1,12 +1,11 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <Eigen/Core>
-
 #include <vector>
 #include <string>
 
-#include "Mesh.h"
+#include <glad/glad.h>
+
+class Mesh;
 
 class GLMesh
 {

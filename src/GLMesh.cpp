@@ -1,5 +1,9 @@
 #include "GLMesh.h"
 
+#include <Eigen/Core>
+
+#include "Mesh.h"
+
 GLMesh::GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
 {
 	numVertices = vertexList.size() / 3;
@@ -11,7 +15,18 @@ GLMesh::GLMesh(const std::string &filename)
 {
 	Mesh mesh(filename);
 
-	std::vector<GLfloat> vertexList = mesh.vertexList();
+	std::vector<GLfloat> vertexList = mesh.vertexListFloat();
+	std::vector<GLuint> faceList = mesh.faceList();
+
+	numVertices = vertexList.size() / 3;
+	numFaces = faceList.size() / 3;
+	initializeMeshBuffers(vertexList, faceList);
+}
+
+GLMesh::GLMesh(Mesh &mesh)
+{
+
+	std::vector<GLfloat> vertexList = mesh.vertexListFloat();
 	std::vector<GLuint> faceList = mesh.faceList();
 
 	numVertices = vertexList.size() / 3;

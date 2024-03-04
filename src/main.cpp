@@ -1,12 +1,13 @@
-﻿#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-#include <iostream>
+﻿#include <iostream>
 #include <filesystem>
 #include <vector>
 
-#include <GLMesh.h>
-#include <Shader.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include "Mesh.h"
+#include "GLMesh.h"
+#include "Shader.h"
 
 std::vector<GLfloat> vertices = {
 	0.5f, 0.5f, 0.0f,	// Top right
@@ -38,7 +39,7 @@ public:
 
 		// glfw window creation
 		// --------------------
-		window = glfwCreateWindow(800, 600, "HelloOpenGL", NULL, NULL);
+		window = glfwCreateWindow(1000, 1000, "HelloOpenGL", NULL, NULL);
 		if (window == NULL)
 		{
 			std::cout << "Failed to create GLFW window" << std::endl;
@@ -92,7 +93,13 @@ int main()
 
 	// GLMesh glMesh(vertices, indices);
 
-	GLMesh glMesh("meshes/bunny.obj");
+	Mesh mesh("meshes/bunny.obj");
+	mesh.fitIntoUnitBall();
+	mesh.scale(0.9);
+	GLMesh glMesh(mesh);
+
+	glPolygonMode(GL_FRONT, GL_LINE);
+	// glEnable(GL_CULL_FACE);
 
 	// render loop
 	while (!glWindow.shouldClose())
