@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 
 #include <vector>
+#include <string>
 
 #include "Mesh.h"
 
@@ -18,6 +19,7 @@ public:
 	unsigned int numVertices, numFaces;
 
 	GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList);
+	GLMesh(const std::string &filename);
 	GLMesh(Mesh &mesh);
 	void draw();
 };

@@ -4,8 +4,11 @@
 #include <string>
 #include <vector>
 
+#define OM_STATIC_BUILD
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/IO/reader/OBJReader.hh>
+// #include <OpenMesh/Core/IO/writer/OBJWriter.hh>
 
 struct MyTraits : public OpenMesh::DefaultTraits
 {
@@ -19,6 +22,9 @@ class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
 {
 private:
 public:
-	Mesh(std::string &filename);
-	Mesh(std::vector<double> vertexList, std::vector<unsigned int> faceList);
+	Mesh(const std::string &filename);
+	Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int> &faceList);
+
+	std::vector<float> vertexList();
+	const std::vector<unsigned int> faceList();
 };

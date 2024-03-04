@@ -7,6 +7,18 @@ GLMesh::GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint>
 	initializeMeshBuffers(vertexList, faceList);
 }
 
+GLMesh::GLMesh(const std::string &filename)
+{
+	Mesh mesh(filename);
+
+	std::vector<GLfloat> vertexList = mesh.vertexList();
+	std::vector<GLuint> faceList = mesh.faceList();
+
+	numVertices = vertexList.size() / 3;
+	numFaces = faceList.size() / 3;
+	initializeMeshBuffers(vertexList, faceList);
+}
+
 void GLMesh::initializeMeshBuffers(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
 {
 	// 1. Generate vertex array object

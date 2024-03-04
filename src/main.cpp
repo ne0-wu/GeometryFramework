@@ -76,6 +76,9 @@ private:
 
 int main()
 {
+	std::filesystem::path currentPath = std::filesystem::current_path();
+	std::cout << "Current working directory: " << currentPath << std::endl;
+
 	GLWindow glWindow;
 
 	// glad: load all OpenGL function pointers
@@ -87,7 +90,9 @@ int main()
 
 	Shader shaderProgram("shaders/basic.vert", "shaders/basic.frag");
 
-	GLMesh glMesh(vertices, indices);
+	// GLMesh glMesh(vertices, indices);
+
+	GLMesh glMesh("meshes/bunny.obj");
 
 	// render loop
 	while (!glWindow.shouldClose())

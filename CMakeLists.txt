@@ -77,4 +77,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/shaders"
         "$<TARGET_FILE_DIR:HelloOpenGL>/shaders"
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/meshes"
+        "$<TARGET_FILE_DIR:HelloOpenGL>/meshes"
 )
