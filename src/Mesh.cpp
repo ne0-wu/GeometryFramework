@@ -180,15 +180,3 @@ void Mesh::fitIntoUnitBall()
 				  { maxRadius = std::max(maxRadius, point(v_it).norm()); });
 	scale(1 / maxRadius);
 }
-
-bool Mesh::removeVertex()
-{
-	// TODO:
-	return false;
-}
-
-bool Mesh::collapseEdge()
-{
-	// TODO:
-	return false;
-}

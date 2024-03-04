@@ -1,7 +1,5 @@
 #include "GLMesh.h"
 
-#include <Eigen/Core>
-
 #include "Mesh.h"
 
 GLMesh::GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)

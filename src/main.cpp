@@ -9,18 +9,6 @@
 #include "GLMesh.h"
 #include "Shader.h"
 
-std::vector<GLfloat> vertices = {
-	0.5f, 0.5f, 0.0f,	// Top right
-	0.5f, -0.5f, 0.0f,	// Bottom right
-	-0.5f, -0.5f, 0.0f, // Bottom left
-	-0.5f, 0.5f, 0.0f	// Top left
-};
-
-std::vector<GLuint> indices = {
-	0, 1, 3, // First triangle
-	1, 2, 3	 // Second triangle
-};
-
 class GLWindow
 {
 public:
@@ -91,15 +79,13 @@ int main()
 
 	Shader shaderProgram("shaders/basic.vert", "shaders/basic.frag");
 
-	// GLMesh glMesh(vertices, indices);
-
-	Mesh mesh("meshes/bunny.obj");
+	Mesh mesh("meshes/cathead.obj");
 	mesh.fitIntoUnitBall();
 	mesh.scale(0.9);
 	GLMesh glMesh(mesh);
 
-	glPolygonMode(GL_FRONT, GL_LINE);
-	// glEnable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
 	// render loop
 	while (!glWindow.shouldClose())
@@ -110,7 +96,6 @@ int main()
 
 		// render
 		// ------
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		shaderProgram.use();
