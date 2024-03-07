@@ -6,6 +6,8 @@
 
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 
+#include "GLMesh.h"
+
 struct MyTraits : public OpenMesh::DefaultTraits
 {
 	typedef OpenMesh::VectorT<double, 3> Point;
@@ -16,6 +18,9 @@ struct MyTraits : public OpenMesh::DefaultTraits
 
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
 {
+private:
+	GLMesh glmesh;
+
 public:
 	Mesh(const std::string &filename);
 	Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int> &faceList);
@@ -26,6 +31,9 @@ public:
 
 	int numVertices();
 	int numFaces();
+
+	// Geometry information
+	// --------------------
 
 	Point boundingBoxMin();
 	Point boundingBoxMax();
@@ -40,6 +48,9 @@ public:
 
 	void moveCenterToOrigin();
 
+	// Basic geometry transformations
+	// ------------------------------
+
 	void scale(double scaler);
 
 	void resize(Point min, Point max);
@@ -50,9 +61,9 @@ public:
 	void fitIntoUnitCube();
 	void fitIntoUnitBall();
 
+	// Mesh simplification
+	// -------------------
 	bool simplifyQEM(int nVertices);
-
-private:
 	bool removeVertex();
 	bool collapseEdge();
 };

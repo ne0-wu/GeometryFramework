@@ -169,7 +169,7 @@ void Mesh::fitInto(double minX, double minY, double minZ, double maxX, double ma
 
 void Mesh::fitIntoUnitCube()
 {
-	fitInto(Mesh::Point(-1, -1, -1), Mesh::Point(1, 1, 1));
+	fitInto(Mesh::Point(0, 0, 0), Mesh::Point(1, 1, 1));
 }
 
 void Mesh::fitIntoUnitBall()

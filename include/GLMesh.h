@@ -17,8 +17,12 @@ private:
 public:
 	unsigned int numVertices, numFaces;
 
+	GLMesh();
 	GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList);
 	GLMesh(const std::string &filename);
 	GLMesh(Mesh &mesh);
+
 	void draw();
+	void update();
+	void setMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList);
 };
