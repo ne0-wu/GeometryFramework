@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <Eigen/Core>
 
 #include "GLMesh.h"
 
@@ -66,4 +67,5 @@ public:
 	bool simplifyQEM(int nVertices);
 	bool removeVertex();
 	bool collapseEdge();
+	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
 };
