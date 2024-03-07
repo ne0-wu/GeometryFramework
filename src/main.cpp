@@ -42,6 +42,7 @@ int main()
 		glMesh.draw();
 
 		scene.swapBuffers();
+		scene.pollEvents();
 	}
 
 	return 0;

@@ -2,6 +2,23 @@
 
 #include "Mesh.h"
 
+GLMesh::GLMesh()
+{
+	std::vector<GLfloat> vertexList = {
+		0.5f, 0.5f, 0.0f,	// Top right
+		0.5f, -0.5f, 0.0f,	// Bottom right
+		-0.5f, -0.5f, 0.0f, // Bottom left
+		-0.5f, 0.5f, 0.0f	// Top left
+	};
+	std::vector<GLuint> faceList = {
+		0, 1, 3, // First triangle
+		1, 2, 3	 // Second triangle
+	};
+	numVertices = vertexList.size() / 3;
+	numFaces = faceList.size() / 3;
+	initializeMeshBuffers(vertexList, faceList);
+}
+
 GLMesh::GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
 {
 	numVertices = vertexList.size() / 3;
