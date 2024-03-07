@@ -1,8 +1,8 @@
-#include "Shader.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#include "Shader.h"
 
 Shader::Shader(const std::string &vertexShaderCode, const std::string &fragmentShaderCode, bool fromFile)
 {

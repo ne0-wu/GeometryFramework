@@ -4,6 +4,7 @@
 
 GLMesh::GLMesh()
 {
+	// a rectangle by default
 	std::vector<GLfloat> vertexList = {
 		0.5f, 0.5f, 0.0f,	// Top right
 		0.5f, -0.5f, 0.0f,	// Bottom right
@@ -14,8 +15,8 @@ GLMesh::GLMesh()
 		0, 1, 3, // First triangle
 		1, 2, 3	 // Second triangle
 	};
-	numVertices = vertexList.size() / 3;
-	numFaces = faceList.size() / 3;
+	numVertices = 3;
+	numFaces = 2;
 	initializeMeshBuffers(vertexList, faceList);
 }
 

@@ -2,8 +2,6 @@
 #include <filesystem>
 #include <vector>
 
-#include <glad/glad.h>
-
 #include "Scene.h"
 #include "Mesh.h"
 #include "GLMesh.h"
