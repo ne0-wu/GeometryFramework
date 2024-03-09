@@ -11,22 +11,35 @@
 
 class GLFWwindow;
 
+// struct Camera
+// {
+// 	Eigen::Vector3f position = Eigen::Vector3f(2, 2, 0);
+// 	Eigen::Vector3f direction = Eigen::Vector3f(-1, -1, 0).normalized();
+// 	Eigen::Vector3f up = Eigen::Vector3f(0, 0, 1); // opposite to gravity direction
+// 	float fov = 45.0f;
+// 	float near = 0.1f;
+// 	float far = 100.0f;
+// 	float aspect = 2.0f;
+// } defaultCamera;
+
+struct Camera
+{
+	Eigen::Vector3f position = Eigen::Vector3f(0, 0, -1);
+	Eigen::Vector3f direction = Eigen::Vector3f(0, 0, 1).normalized();
+	Eigen::Vector3f up = Eigen::Vector3f(1, 0, 0); // opposite to gravity direction
+	float fov = 45.0f;
+	float near = 0.1f;
+	float far = 100.0f;
+	float aspect = 2.0f;
+} defaultCamera;
+
 class Scene
 {
 private:
 	GLFWwindow *window;
 	std::vector<Mesh> meshes;
 	float lastFrameTime = 0.0f;
-	struct
-	{
-		Eigen::Vector3f position = Eigen::Vector3f(2, 2, 1);
-		Eigen::Vector3f direction = Eigen::Vector3f(-1, -1, 0).normalized();
-		Eigen::Vector3f up = Eigen::Vector3f(0, 0, 1); // opposite to gravity direction
-		float fov = 45.0f;
-		float near = 0.1f;
-		float far = 100.0f;
-		float aspect = 2.0f;
-	} camera;
+	Camera camera;
 
 	static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 	{
@@ -34,7 +47,7 @@ private:
 	}
 
 public:
-	Shader *shaderProgram;
+	Shader shaderProgram;
 
 	Scene()
 	{
@@ -69,6 +82,9 @@ public:
 			std::cout << "Failed to initialize GLAD" << std::endl;
 			// return -1;
 		}
+
+		shaderProgram = Shader("shaders/basic.vert", "shaders/basic.frag");
+		shaderProgram.use();
 	}
 
 	~Scene()
@@ -130,17 +146,42 @@ public:
 		float deltaTime = currentFrameTime - lastFrameTime;
 		lastFrameTime = currentFrameTime;
 
-		float cameraSpeed = 10.0f * deltaTime;
+		float cameraSpeed;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			cameraSpeed = 10.0f * deltaTime;
+		else
+			cameraSpeed = 3.0f * deltaTime;
+
+		float rotationSpeed = deltaTime;
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			camera.position += cameraSpeed * camera.direction;
+			camera.position += cameraSpeed * camera.direction.normalized();
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			camera.position -= cameraSpeed * camera.direction;
+			camera.position -= cameraSpeed * camera.direction.normalized();
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			camera.position += cameraSpeed * camera.direction.cross(camera.up).normalized();
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			camera.position -= cameraSpeed * camera.direction.cross(camera.up).normalized();
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+			camera.position += cameraSpeed * camera.up.normalized();
+		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			camera.position -= cameraSpeed * camera.up.normalized();
 
-		int id = shaderProgram->getID();
-		int modelLoc = glGetUniformLocation(shaderProgram->getID(), "model"),
-			viewLoc = glGetUniformLocation(shaderProgram->getID(), "view"),
-			projectionLoc = glGetUniformLocation(shaderProgram->getID(), "projection");
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+			camera.direction = (camera.direction * cos(rotationSpeed) + camera.up * sin(rotationSpeed)).normalized();
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+			camera.direction = (camera.direction * cos(rotationSpeed) - camera.up * sin(rotationSpeed)).normalized();
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+			camera.direction = (camera.direction * cos(rotationSpeed) - camera.direction.cross(camera.up) * sin(rotationSpeed)).normalized();
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+			camera.direction = (camera.direction * cos(rotationSpeed) + camera.direction.cross(camera.up) * sin(rotationSpeed)).normalized();
+
+		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+			camera = defaultCamera;
+
+		int modelLoc = glGetUniformLocation(shaderProgram.getID(), "model"),
+			viewLoc = glGetUniformLocation(shaderProgram.getID(), "view"),
+			projectionLoc = glGetUniformLocation(shaderProgram.getID(), "projection");
 
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelMatrix().data());
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix().data());

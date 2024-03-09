@@ -7,11 +7,12 @@
 class Shader
 {
 public:
+	Shader() {}
 	Shader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true);
 	void use();
 	static void checkCompileErrors(GLuint shader, const std::string &type);
 	GLuint getID() const;
-	~Shader();
+	~Shader() {}
 
 private:
 	GLuint ID;

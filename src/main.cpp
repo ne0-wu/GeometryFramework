@@ -14,41 +14,56 @@ int main()
 
 	Scene scene;
 
-	Shader shaderProgram("shaders/basic.vert", "shaders/basic.frag");
-	scene.shaderProgram = &shaderProgram;
-
-	Mesh mesh("meshes/cathead.obj");
+	Mesh mesh("meshes/ball.obj");
 	mesh.fitIntoUnitBall();
 	mesh.scale(0.9);
 
 	std::cout << "Number of vertices: " << mesh.numVertices() << std::endl;
 
-	// mesh.simplifyQEM(120);
+	bool result;
+
+	result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.8));
+	mesh.save("0.8.obj");
+
+	if (result)
+	{
+		result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.6));
+		mesh.save("0.6.obj");
+	}
+
+	if (result)
+	{
+		result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.4));
+		mesh.save("0.4.obj");
+	}
 
 	std::cout << "Number of vertices: " << mesh.numVertices() << std::endl;
 
 	GLMesh glMesh(mesh);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	// glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
+
+	int vertexColorLocation = glGetUniformLocation(scene.shaderProgram.getID(), "color");
 
 	// render loop
 	while (!scene.shouldClose())
 	{
-		// scene.shaderProgram.use();
-
 		// input
 		// -----
 		scene.processInput();
 
-		// shaderProgram.use();
-		scene.shaderProgram->use();
-
 		// render
 		// ------
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
+		glMesh.draw();
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glLineWidth(2.0f);
+		glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
 		glMesh.draw();
 
 		scene.swapBuffers();

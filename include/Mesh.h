@@ -27,6 +27,8 @@ public:
 	Mesh(const std::string &filename);
 	Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int> &faceList);
 
+	void save(const std::string &filename);
+
 	std::vector<double> vertexList();
 	std::vector<float> vertexListFloat();
 	const std::vector<unsigned int> faceList();
@@ -56,7 +58,7 @@ public:
 
 	Eigen::Vector3d eigenNormal(FaceHandle f)
 	{
-		return Eigen::Vector3d(normal(f)[0], normal(f)[1], normal(f)[2]);
+		return Eigen::Vector3d(normal(f)[0], normal(f)[1], normal(f)[2]).normalized();
 	}
 
 	Point boundingBoxMin();
@@ -88,6 +90,10 @@ public:
 	// Mesh simplification
 	// -------------------
 	bool simplifyQEM(int targetNumVertices);
+	bool simplifyQEM2(int targetNumVertices);
 	void collapseEdge(HalfedgeHandle edge, Eigen::Vector3d contractedPosition);
+	void collapseEdge(HalfedgeHandle edge, Point contractedPosition);
 	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
+	double quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge);
+	Point optimalPlacement(const Eigen::Matrix4d &Q, HalfedgeHandle edge);
 };

@@ -23,6 +23,15 @@ Mesh::Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int
 		this->add_face(Mesh::VertexHandle(faceList[i]), Mesh::VertexHandle(faceList[i + 1]), Mesh::VertexHandle(faceList[i + 2]));
 }
 
+void Mesh::save(const std::string &filename)
+{
+	if (!OpenMesh::IO::write_mesh(*this, filename))
+	{
+		std::cerr << "Error saving mesh to file " << filename << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
 std::vector<float> Mesh::vertexListFloat()
 {
 	std::vector<float> vertexList;
