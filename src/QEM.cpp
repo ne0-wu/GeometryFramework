@@ -15,6 +15,7 @@ void Mesh::collapseEdge(Mesh::HalfedgeHandle edge, Point contractedPosition)
 	collapse(edge);
 
 	garbage_collection();
+	update_normals();
 }
 
 Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
@@ -27,11 +28,14 @@ Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
 		if (!vf_it.is_valid())
 			continue;
 		Eigen::Vector3d normal = eigenNormal(vf_it);
+		// std::cout << normal << std::endl;
 		double d = (normal.transpose() * p).value();
 		Eigen::Vector4d plane(normal.x(), normal.y(), normal.z(), -d);
 		// auto tmp = (plane * plane.transpose());
 		Q += plane * plane.transpose();
 	}
+
+	// std::cout << Q << std::endl;
 
 	return Q;
 }
@@ -45,13 +49,16 @@ Mesh::Point Mesh::optimalPlacement(const Eigen::Matrix4d &Q, HalfedgeHandle edge
 	Eigen::Vector4d midPointHomogeneous(midPoint.x(), midPoint.y(), midPoint.z(), 1);
 	double errorMid = (midPointHomogeneous.transpose() * Q * midPointHomogeneous).value();
 
-	if (abs(A.determinant()) <= 1e-8)
+	return (point(to_vertex_handle(edge)) + point(from_vertex_handle(edge))) / 2;
+
+	if (abs(A.determinant()) <= 0)
 	{
 		return (point(to_vertex_handle(edge)) + point(from_vertex_handle(edge))) / 2;
 	}
 	else
 	{
 		Eigen::Vector4d x = A.lu().solve(Eigen::Vector4d(0, 0, 0, 1));
+		// std::cout << x << std::endl;
 		x = x / x[3];
 		double error2 = (x.transpose() * Q * x).value();
 		if (error2 < errorMid)
@@ -74,17 +81,16 @@ double Mesh::quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge)
 	Eigen::Vector4d midPointHomogeneous(midPoint.x(), midPoint.y(), midPoint.z(), 1);
 	double errorMid = (midPointHomogeneous.transpose() * Q * midPointHomogeneous).value();
 
-	if (abs(A.determinant()) <= 1e-8)
+	return errorMid;
+
+	if (abs(A.determinant()) <= 0)
 	{
 		return errorMid;
 	}
 	else
 	{
-		// Eigen::Vector3d b = -Q.block<3, 1>(0, 3);
-		// Eigen::Vector3d x = A.inverse() * b;
-		// Eigen::Vector4d xHomogeneous(x.x(), x.y(), x.z(), 1);
-
 		Eigen::Vector4d x = A.lu().solve(Eigen::Vector4d(0, 0, 0, 1));
+		std::cout << x << std::endl;
 		x = x / x[3];
 		double error2 = (x.transpose() * Q * x).value();
 		if (error2 < errorMid)
@@ -145,7 +151,6 @@ bool Mesh::simplifyQEM(int targetNumVertices)
 			std::cout << "min qem too large" << std::endl;
 			return false;
 		}
-		garbage_collection();
 		collapseEdge(minHalfedge, optimalPlacement(Qs[to_vertex_handle(minHalfedge)] + Qs[from_vertex_handle(minHalfedge)], minHalfedge));
 	}
 	return true;
