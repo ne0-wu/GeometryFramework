@@ -22,20 +22,20 @@ int main()
 
 	bool result;
 
-	result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.8));
-	mesh.save("0.8.obj");
+	// result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.8));
+	// mesh.save("0.8.obj");
 
-	if (result)
-	{
-		result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.6));
-		mesh.save("0.6.obj");
-	}
+	// if (result)
+	// {
+	// 	result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.6));
+	// 	mesh.save("0.6.obj");
+	// }
 
-	if (result)
-	{
-		result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.4));
-		mesh.save("0.4.obj");
-	}
+	// if (result)
+	// {
+	// 	result = mesh.simplifyQEM((int)(mesh.numVertices() * 0.4));
+	// 	mesh.save("0.4.obj");
+	// }
 
 	std::cout << "Number of vertices: " << mesh.numVertices() << std::endl;
 
