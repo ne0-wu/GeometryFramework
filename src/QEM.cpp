@@ -28,35 +28,6 @@ Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
 	return Q;
 }
 
-// double Mesh::quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge)
-// {
-// 	Eigen::Matrix4d A = Q;
-// 	A.block<1, 3>(3, 0) = Eigen::Vector3d(0, 0, 0).transpose();
-// 	A(3, 3) = 1;
-// 	Eigen::Vector3d midPoint = (eigenPoint(to_vertex_handle(edge)) + eigenPoint(from_vertex_handle(edge))) / 2;
-// 	Eigen::Vector4d midPointHomogeneous(midPoint.x(), midPoint.y(), midPoint.z(), 1);
-// 	double errorMid = (midPointHomogeneous.transpose() * Q * midPointHomogeneous).value();
-
-// 	if (abs(A.determinant()) <= 1e-10)
-// 	{
-// 		return errorMid;
-// 	}
-// 	else
-// 	{
-// 		Eigen::Vector4d x = A.lu().solve(Eigen::Vector4d(0, 0, 0, 1));
-// 		x = x / x[3];
-// 		double error2 = (x.transpose() * Q * x).value();
-// 		if (error2 < errorMid)
-// 		{
-// 			return error2;
-// 		}
-// 		else
-// 		{
-// 			return errorMid;
-// 		}
-// 	}
-// }
-
 typedef std::pair<double, Mesh::Point> OptimalPlacement;
 OptimalPlacement Mesh::optimalPlacement(HalfedgeHandle edge, const Eigen::Matrix4d &Q)
 {
