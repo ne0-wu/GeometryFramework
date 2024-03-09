@@ -1,7 +1,6 @@
 // #include <queue>
 #include <map>
 #include <algorithm>
-#include <random>
 
 #include "Mesh.h"
 
@@ -15,7 +14,7 @@ void Mesh::collapseEdge(Mesh::HalfedgeHandle edge, Point contractedPosition)
 
 	collapse(edge);
 
-	this->garbage_collection();
+	garbage_collection();
 }
 
 Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
@@ -28,9 +27,9 @@ Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
 		if (!vf_it.is_valid())
 			continue;
 		Eigen::Vector3d normal = eigenNormal(vf_it);
-		double d = normal.dot(p);
+		double d = (normal.transpose() * p).value();
 		Eigen::Vector4d plane(normal.x(), normal.y(), normal.z(), -d);
-		auto tmp = (plane * plane.transpose());
+		// auto tmp = (plane * plane.transpose());
 		Q += plane * plane.transpose();
 	}
 
@@ -41,7 +40,7 @@ Mesh::Point Mesh::optimalPlacement(const Eigen::Matrix4d &Q, HalfedgeHandle edge
 {
 	Eigen::Matrix4d A = Q;
 	A.block<1, 3>(3, 0) = Eigen::Vector3d(0, 0, 0).transpose();
-	A(3, 3) = 0;
+	A(3, 3) = 1;
 	Eigen::Vector3d midPoint = (eigenPoint(to_vertex_handle(edge)) + eigenPoint(from_vertex_handle(edge))) / 2;
 	Eigen::Vector4d midPointHomogeneous(midPoint.x(), midPoint.y(), midPoint.z(), 1);
 	double errorMid = (midPointHomogeneous.transpose() * Q * midPointHomogeneous).value();
@@ -52,11 +51,7 @@ Mesh::Point Mesh::optimalPlacement(const Eigen::Matrix4d &Q, HalfedgeHandle edge
 	}
 	else
 	{
-		// Eigen::Vector3d b = -Q.block<3, 1>(0, 3);
-		// Eigen::Vector3d x = A.inverse() * b;
-		// Eigen::Vector4d xHomogeneous(x.x(), x.y(), x.z(), 1);
-
-		Eigen::Vector4d x = A.inverse() * Eigen::Vector4d(0, 0, 0, 1);
+		Eigen::Vector4d x = A.lu().solve(Eigen::Vector4d(0, 0, 0, 1));
 		x = x / x[3];
 		double error2 = (x.transpose() * Q * x).value();
 		if (error2 < errorMid)
@@ -67,7 +62,6 @@ Mesh::Point Mesh::optimalPlacement(const Eigen::Matrix4d &Q, HalfedgeHandle edge
 		{
 			return (point(to_vertex_handle(edge)) + point(from_vertex_handle(edge))) / 2;
 		}
-		return Mesh::Point(x.x(), x.y(), x.z());
 	}
 }
 
@@ -75,7 +69,7 @@ double Mesh::quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge)
 {
 	Eigen::Matrix4d A = Q;
 	A.block<1, 3>(3, 0) = Eigen::Vector3d(0, 0, 0).transpose();
-	A(3, 3) = 0;
+	A(3, 3) = 1;
 	Eigen::Vector3d midPoint = (eigenPoint(to_vertex_handle(edge)) + eigenPoint(from_vertex_handle(edge))) / 2;
 	Eigen::Vector4d midPointHomogeneous(midPoint.x(), midPoint.y(), midPoint.z(), 1);
 	double errorMid = (midPointHomogeneous.transpose() * Q * midPointHomogeneous).value();
@@ -90,7 +84,7 @@ double Mesh::quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge)
 		// Eigen::Vector3d x = A.inverse() * b;
 		// Eigen::Vector4d xHomogeneous(x.x(), x.y(), x.z(), 1);
 
-		Eigen::Vector4d x = A.inverse() * Eigen::Vector4d(0, 0, 0, 1);
+		Eigen::Vector4d x = A.lu().solve(Eigen::Vector4d(0, 0, 0, 1));
 		x = x / x[3];
 		double error2 = (x.transpose() * Q * x).value();
 		if (error2 < errorMid)
@@ -101,7 +95,6 @@ double Mesh::quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge)
 		{
 			return errorMid;
 		}
-		return error2;
 	}
 }
 
@@ -152,6 +145,7 @@ bool Mesh::simplifyQEM(int targetNumVertices)
 			std::cout << "min qem too large" << std::endl;
 			return false;
 		}
+		garbage_collection();
 		collapseEdge(minHalfedge, optimalPlacement(Qs[to_vertex_handle(minHalfedge)] + Qs[from_vertex_handle(minHalfedge)], minHalfedge));
 	}
 	return true;

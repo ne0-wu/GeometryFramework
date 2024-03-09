@@ -12,10 +12,11 @@
 
 struct MyTraits : public OpenMesh::DefaultTraits
 {
-	typedef OpenMesh::VectorT<double, 3> Point;
-	// typedef OpenMesh::Vec3d Normal;
-	// VertexAttributes(OpenMesh::Attributes::Normal);
-	// FaceAttributes(OpenMesh::Attributes::Normal);
+	typedef OpenMesh::Vec3d Point;
+	typedef OpenMesh::Vec3d Normal;
+	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
+	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
+	EdgeAttributes(OpenMesh::Attributes::Status);
 };
 
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
