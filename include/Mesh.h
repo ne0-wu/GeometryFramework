@@ -93,8 +93,6 @@ public:
 	// Mesh simplification
 	// -------------------
 	bool simplifyQEM(int targetNumVertices);
-	bool simplifyQEM2(int targetNumVertices);
-	void collapseEdge(HalfedgeHandle edge, Eigen::Vector3d contractedPosition);
 	void collapseEdge(HalfedgeHandle edge, Point contractedPosition);
 	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
 	double quadricErrorEdge(const Eigen::Matrix4d &Q, HalfedgeHandle edge);
