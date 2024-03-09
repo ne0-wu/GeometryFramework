@@ -43,7 +43,6 @@ struct Camera
 class Scene
 {
 private:
-	GLFWwindow *window;
 	std::vector<Mesh> meshes;
 	float lastFrameTime = 0.0f;
 	Camera camera;
@@ -54,6 +53,9 @@ private:
 	}
 
 public:
+
+	GLFWwindow *window;
+
 	Shader shaderProgram;
 
 	Scene()

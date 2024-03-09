@@ -85,3 +85,10 @@ void GLMesh::draw()
 	glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
+
+void GLMesh::setMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
+{
+	numVertices = vertexList.size() / 3;
+	numFaces = faceList.size() / 3;
+	initializeMeshBuffers(vertexList, faceList);
+}

@@ -23,6 +23,5 @@ public:
 	GLMesh(Mesh &mesh);
 
 	void draw();
-	void update();
 	void setMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList);
 };

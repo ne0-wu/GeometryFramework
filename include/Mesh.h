@@ -36,14 +36,17 @@ public:
 	std::vector<float> vertexListFloat();
 	const std::vector<unsigned int> faceList();
 
-	int numVertices()
-	{
-		return this->n_vertices();
-	}
+	int numVertices() { return this->n_vertices(); }
 
-	int numFaces()
+	int numFaces() { return this->n_faces(); }
+
+	// Render
+	// ------
+	bool render()
 	{
-		return this->n_faces();
+		glmesh = GLMesh(*this);
+		glmesh.setMesh(vertexListFloat(), faceList());
+		glmesh.draw();
 	}
 
 	// Geometry information
