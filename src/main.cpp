@@ -14,7 +14,7 @@ int main()
 
 	Scene scene;
 
-	Mesh mesh("meshes/ball.obj");
+	Mesh mesh("meshes/spot_quadrangulated.obj");
 	mesh.fitIntoUnitBall();
 	mesh.scale(0.9);
 
