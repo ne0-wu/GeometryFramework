@@ -6,6 +6,7 @@
 
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 
 #include "GLMesh.h"
 
@@ -30,11 +31,33 @@ public:
 	std::vector<float> vertexListFloat();
 	const std::vector<unsigned int> faceList();
 
-	int numVertices();
-	int numFaces();
+	int numVertices()
+	{
+		return this->n_vertices();
+	}
+
+	int numFaces()
+	{
+		return this->n_faces();
+	}
 
 	// Geometry information
 	// --------------------
+
+	Eigen::Vector3d eigenPoint(VertexHandle v)
+	{
+		return Eigen::Vector3d(point(v)[0], point(v)[1], point(v)[2]);
+	}
+
+	Eigen::Vector3d eigenNormal(VertexHandle v)
+	{
+		return Eigen::Vector3d(normal(v)[0], normal(v)[1], normal(v)[2]);
+	}
+
+	Eigen::Vector3d eigenNormal(FaceHandle f)
+	{
+		return Eigen::Vector3d(normal(f)[0], normal(f)[1], normal(f)[2]);
+	}
 
 	Point boundingBoxMin();
 	Point boundingBoxMax();
@@ -64,8 +87,7 @@ public:
 
 	// Mesh simplification
 	// -------------------
-	bool simplifyQEM(int nVertices);
-	bool removeVertex();
-	bool collapseEdge();
+	bool simplifyQEM(int targetNumVertices);
+	void collapseEdge(HalfedgeHandle edge, Eigen::Vector3d contractedPosition);
 	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
 };

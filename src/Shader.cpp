@@ -4,13 +4,33 @@
 
 #include "Shader.h"
 
+// Shader::Shader()
+// {
+// 	GLuint vertexShader, fragmentShader;
+// 	vertexShader = compileShader(readShaderCodeFromFile("shaders/basic.vert").c_str(), GL_VERTEX_SHADER);
+// 	checkCompileErrors(vertexShader, "VERTEX");
+// 	fragmentShader = compileShader(readShaderCodeFromFile("shaders/basic.frag").c_str(), GL_FRAGMENT_SHADER);
+// 	checkCompileErrors(fragmentShader, "FRAGMENT");
+// 	ID = glCreateProgram();
+// 	glAttachShader(ID, vertexShader);
+// 	glAttachShader(ID, fragmentShader);
+// 	glLinkProgram(ID);
+
+// 	checkCompileErrors(ID, "PROGRAM");
+
+// 	glDeleteShader(vertexShader);
+// 	glDeleteShader(fragmentShader);
+// }
+
 Shader::Shader(const std::string &vertexShaderCode, const std::string &fragmentShaderCode, bool fromFile)
 {
 	GLuint vertexShader, fragmentShader;
 	if (fromFile)
 	{
 		vertexShader = compileShader(readShaderCodeFromFile(vertexShaderCode).c_str(), GL_VERTEX_SHADER);
+		checkCompileErrors(vertexShader, "VERTEX");
 		fragmentShader = compileShader(readShaderCodeFromFile(fragmentShaderCode).c_str(), GL_FRAGMENT_SHADER);
+		checkCompileErrors(fragmentShader, "FRAGMENT");
 	}
 	else
 	{

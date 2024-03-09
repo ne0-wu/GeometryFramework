@@ -16,11 +16,16 @@ class Scene
 private:
 	GLFWwindow *window;
 	std::vector<Mesh> meshes;
-	struct Camera
+	float lastFrameTime = 0.0f;
+	struct
 	{
-		Eigen::Vector3d position = Eigen::Vector3d(2, 2, 1);
-		Eigen::Vector3d direction = Eigen::Vector3d(-1, -1, 0).normalized();
-		Eigen::Vector3d up = Eigen::Vector3d(0, 0, 1); // opposite to gravity direction
+		Eigen::Vector3f position = Eigen::Vector3f(2, 2, 1);
+		Eigen::Vector3f direction = Eigen::Vector3f(-1, -1, 0).normalized();
+		Eigen::Vector3f up = Eigen::Vector3f(0, 0, 1); // opposite to gravity direction
+		float fov = 45.0f;
+		float near = 0.1f;
+		float far = 100.0f;
+		float aspect = 2.0f;
 	} camera;
 
 	static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -29,6 +34,8 @@ private:
 	}
 
 public:
+	Shader *shaderProgram;
+
 	Scene()
 	{
 		// glfw: initialize and configure
@@ -84,17 +91,17 @@ public:
 		glfwSwapBuffers(window);
 	}
 
-	Eigen::Matrix4d modelMatrix()
+	Eigen::Matrix4f modelMatrix()
 	{
-		Eigen::Matrix4d model;
+		Eigen::Matrix4f model;
 		model.setIdentity();
 		model.block<3, 1>(0, 3) = -camera.position;
 		return model;
 	}
 
-	Eigen::Matrix4d viewMatrix()
+	Eigen::Matrix4f viewMatrix()
 	{
-		Eigen::Matrix4d view;
+		Eigen::Matrix4f view;
 		view.setIdentity();
 		auto right = camera.up.cross(camera.direction);
 		auto top = camera.direction.cross(right);
@@ -104,10 +111,41 @@ public:
 		return view;
 	}
 
-	Eigen::Matrix4d projectionMatrix() {}
+	Eigen::Matrix4f projectionMatrix()
+	{
+		Eigen::Matrix4f projection;
+		projection.setIdentity();
+		projection(0, 0) = 1 / tan(camera.fov / 2);
+		projection(1, 1) = 1 / tan(camera.fov / 2);
+		projection(2, 2) = -(camera.far + camera.near) / (camera.far - camera.near);
+		projection(2, 3) = -2 * camera.far * camera.near / (camera.far - camera.near);
+		projection(3, 2) = -1;
+		projection(3, 3) = 0;
+		return projection;
+	}
 
 	void processInput()
 	{
+		float currentFrameTime = glfwGetTime();
+		float deltaTime = currentFrameTime - lastFrameTime;
+		lastFrameTime = currentFrameTime;
+
+		float cameraSpeed = 10.0f * deltaTime;
+
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			camera.position += cameraSpeed * camera.direction;
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			camera.position -= cameraSpeed * camera.direction;
+
+		int id = shaderProgram->getID();
+		int modelLoc = glGetUniformLocation(shaderProgram->getID(), "model"),
+			viewLoc = glGetUniformLocation(shaderProgram->getID(), "view"),
+			projectionLoc = glGetUniformLocation(shaderProgram->getID(), "projection");
+
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelMatrix().data());
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix().data());
+		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projectionMatrix().data());
+
 		// press Esc to close the window
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);

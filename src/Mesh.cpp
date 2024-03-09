@@ -1,6 +1,9 @@
 #include "Mesh.h"
 
+#ifndef OM_STATIC_BUILD
 #define OM_STATIC_BUILD
+#endif
+
 #include <OpenMesh/Core/IO/MeshIO.hh>
 
 Mesh::Mesh(const std::string &filename)
@@ -59,16 +62,6 @@ const std::vector<unsigned int> Mesh::faceList()
 		faceList[3 * f_it->idx() + 2] = fv_it->idx();
 	}
 	return faceList;
-}
-
-int Mesh::numVertices()
-{
-	return this->n_vertices();
-}
-
-int Mesh::numFaces()
-{
-	return this->n_faces();
 }
 
 Mesh::Point Mesh::boundingBoxMin()
@@ -155,8 +148,6 @@ void Mesh::fitInto(Mesh::Point min, Mesh::Point max)
 {
 	Mesh::Point destCenter = (min + max) / 2, currCenter = center(),
 				destScale = max - destCenter, currScale = boundingBoxMax() - center();
-	// auto destScale = max - destCenter;
-	// auto currScale = this->center() - currCenter;
 	double scaler = (destScale / currScale).min();
 	std::for_each(vertices_begin(), vertices_end(), [&](Mesh::VertexHandle v_it)
 				  { set_point(v_it, (point(v_it) - currCenter) * scaler + destCenter); });

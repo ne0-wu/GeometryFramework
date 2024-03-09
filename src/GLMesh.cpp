@@ -41,7 +41,6 @@ GLMesh::GLMesh(const std::string &filename)
 
 GLMesh::GLMesh(Mesh &mesh)
 {
-
 	std::vector<GLfloat> vertexList = mesh.vertexListFloat();
 	std::vector<GLuint> faceList = mesh.faceList();
 
