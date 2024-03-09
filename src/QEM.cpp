@@ -18,9 +18,18 @@ bool Mesh::collapseEdge()
 
 Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
 {
-	for (auto f : v->faces())
+	Eigen::Matrix4d Q = Eigen::Matrix4d::Zero();
+	Eigen::Vector3d p = point(v).data();
+
+	for (auto vf_it = vf_begin(v); vf_it.is_valid(); ++vf_it)
 	{
+		Eigen::Vector3d normal = this->normal(vf_it).data();
+		double d = -normal.dot(p);
+		Eigen::Vector4d plane(normal.x(), normal.y(), normal.z(), d);
+		Q += plane * plane.transpose();
 	}
+
+	return Q;
 }
 
 struct QEM
