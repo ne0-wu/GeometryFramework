@@ -18,5 +18,6 @@ This project has been tested on Windows 10 with Visual Studio 2022. It should wo
 
 - `WASD` to move the camera.
 - `Up` and `Down` arrow keys to zoom in and out.
+- `R` to reset the camera.
 -  `Q` to simplify the mesh with QEM. The target is to reduce 10% of the vertices each time.
 -  `Control+S` to save the current frame as a PNG image.

@@ -254,8 +254,7 @@ public:
 			glfwSetWindowShouldClose(window, true);
 	}
 
-	void
-	draw()
+	void draw()
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

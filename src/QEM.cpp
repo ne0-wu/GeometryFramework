@@ -67,7 +67,7 @@ bool Mesh::simplifyQEM(int targetNumVertices)
 
 	while (numVertices() > targetNumVertices)
 	{
-		std::cout << "Number of vertices: " << numVertices() << std::endl;
+		// std::cout << "Number of vertices: " << numVertices() << std::endl;
 
 		double minQEM = std::numeric_limits<double>::max();
 		HalfedgeHandle minHalfedge = *halfedges().begin();
