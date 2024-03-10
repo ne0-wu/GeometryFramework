@@ -66,6 +66,8 @@ target_link_libraries(HelloOpenGL
 )
 
 # Handle excutable output path and shaders
+set_property(TARGET HelloOpenGL PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:HelloOpenGL>")
+
 file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/HelloOpenGL/)
 
 set_target_properties(HelloOpenGL PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/HelloOpenGL)

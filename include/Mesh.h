@@ -42,16 +42,34 @@ public:
 
 	// Render
 	// ------
-	bool render()
+	void initializeGLMesh() { glmesh = GLMesh(vertexListFloat(), faceList()); }
+
+	void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
 	{
-		glmesh = GLMesh(*this);
+		glmesh.initializeShader(vertexShaderSource, fragmentShaderSource, fromFile);
+	}
+
+	int getShaderID() { return glmesh.getShaderID(); }
+
+	void bindShader() { glmesh.bindShader(); }
+
+	void draw()
+	{
 		glmesh.setMesh(vertexListFloat(), faceList());
+
+		int vertexColorLocation = glGetUniformLocation(getShaderID(), "color");
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
+		glmesh.draw();
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glLineWidth(2.0f);
+		glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
 		glmesh.draw();
 	}
 
 	// Geometry information
 	// --------------------
-
 	Eigen::Vector3d eigenPoint(VertexHandle v)
 	{
 		return Eigen::Vector3d(point(v)[0], point(v)[1], point(v)[2]);
@@ -82,7 +100,6 @@ public:
 
 	// Basic geometry transformations
 	// ------------------------------
-
 	void scale(double scaler);
 
 	void resize(Point min, Point max);

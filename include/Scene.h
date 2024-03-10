@@ -6,6 +6,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+
 #include "Mesh.h"
 #include "Shader.h"
 
@@ -19,8 +22,8 @@ enum controlType
 
 struct Camera
 {
-	Eigen::Vector3f position = Eigen::Vector3f(2, 2, 0);
-	Eigen::Vector3f direction = Eigen::Vector3f(-1, -1, 0).normalized();
+	Eigen::Vector3f position = Eigen::Vector3f(1.5, -1.5, 0);
+	Eigen::Vector3f direction = Eigen::Vector3f(-1, 1, 0).normalized();
 	Eigen::Vector3f up = Eigen::Vector3f(0, 0, 1); // opposite to gravity direction
 	float fovY = 45.0f;
 	float near = 0.1f;
@@ -43,9 +46,13 @@ struct Camera
 class Scene
 {
 private:
-	std::vector<Mesh> meshes;
 	float lastFrameTime = 0.0f;
-	Camera camera;
+	Camera camera = defaultCamera;
+
+	struct
+	{
+		int KEYBOARD_S_STATE;
+	} initialState;
 
 	static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 	{
@@ -53,10 +60,8 @@ private:
 	}
 
 public:
-
 	GLFWwindow *window;
-
-	Shader shaderProgram;
+	std::vector<Mesh> meshes;
 
 	Scene()
 	{
@@ -92,8 +97,8 @@ public:
 			// return -1;
 		}
 
-		shaderProgram = Shader("shaders/basic.vert", "shaders/basic.frag");
-		shaderProgram.use();
+		// shaderProgram = Shader("shaders/basic.vert", "shaders/basic.frag");
+		// shaderProgram.use();
 	}
 
 	~Scene()
@@ -155,6 +160,20 @@ public:
 
 	void processInput()
 	{
+		// Control + S to save the current mesh
+		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		{
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS && initialState.KEYBOARD_S_STATE == GLFW_RELEASE)
+			{
+				saveFrame("output_numVertices=" + std::to_string(meshes[0].numVertices()) + ".png");
+				initialState.KEYBOARD_S_STATE = GLFW_PRESS;
+			}
+			// skip camera control
+			return;
+		}
+		initialState.KEYBOARD_S_STATE = glfwGetKey(window, GLFW_KEY_S);
+
+		// Camera control
 		float currentFrameTime = glfwGetTime();
 		float deltaTime = currentFrameTime - lastFrameTime;
 		lastFrameTime = currentFrameTime;
@@ -230,19 +249,50 @@ public:
 		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 			camera = defaultCamera;
 
-		int modelLoc = glGetUniformLocation(shaderProgram.getID(), "model"),
-			viewLoc = glGetUniformLocation(shaderProgram.getID(), "view"),
-			projectionLoc = glGetUniformLocation(shaderProgram.getID(), "projection");
-
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelMatrix().data());
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix().data());
-		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projectionMatrix().data());
-
-		// press Esc to close the window
+		// Press Esc to close the window
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
 	}
 
-	void draw();
+	void
+	draw()
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		for (auto &mesh : meshes)
+		{
+			mesh.bindShader();
+
+			int modelLoc = glGetUniformLocation(mesh.getShaderID(), "model"),
+				viewLoc = glGetUniformLocation(mesh.getShaderID(), "view"),
+				projectionLoc = glGetUniformLocation(mesh.getShaderID(), "projection");
+
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelMatrix().data());
+			glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix().data());
+			glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projectionMatrix().data());
+
+			mesh.draw();
+		}
+	}
+
 	void update();
+
+	void addMesh(Mesh &mesh)
+	{
+		meshes.push_back(mesh);
+		meshes.back().initializeGLMesh();
+		meshes.back().initializeShader("shaders/basic.vert", "shaders/basic.frag");
+	}
+
+	void saveFrame(std::string filename)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		std::vector<unsigned char> pixels(3 * width * height);
+		glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+		stbi_flip_vertically_on_write(true);
+		stbi_write_png(filename.c_str(), width, height, 3, pixels.data(), 0);
+	}
 };

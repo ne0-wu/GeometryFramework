@@ -31,16 +31,6 @@ Shader::Shader(const std::string &vertexShaderCode, const std::string &fragmentS
 	glDeleteShader(fragmentShader);
 }
 
-void Shader::use()
-{
-	glUseProgram(ID);
-}
-
-GLuint Shader::getID() const
-{
-	return ID;
-}
-
 void Shader::checkCompileErrors(GLuint shader, const std::string &type)
 {
 	GLint success;

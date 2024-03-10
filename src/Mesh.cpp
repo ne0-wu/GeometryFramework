@@ -1,10 +1,10 @@
-#include "Mesh.h"
-
 #ifndef OM_STATIC_BUILD
 #define OM_STATIC_BUILD
 #endif
 
 #include <OpenMesh/Core/IO/MeshIO.hh>
+
+#include "Mesh.h"
 
 Mesh::Mesh(const std::string &filename)
 {
