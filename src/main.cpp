@@ -12,31 +12,33 @@ int main()
 
 	Scene scene;
 
+	// --------------------------------------------------
+
+	// Load mesh and fit into unit ball
 	Mesh mesh("meshes/spot_quadrangulated.obj");
 	mesh.fitIntoUnitBall();
 	mesh.scale(0.9);
 
-	int numInitialVertices = mesh.numVertices();
-	std::cout << "Number of vertices (initial): " << numInitialVertices << std::endl;
+	// Point cloud test
 
-	bool result;
+	PointCloud pointCloud = mesh.pointCloud(1000, true);
 
-	// for (double remainingRatio = 0.9; remainingRatio > 0.8; remainingRatio -= 0.1)
-	// {
-	// 	int targetNumVertices = (int)(numInitialVertices * remainingRatio);
-	// 	std::cout << "Number of vertices (" << remainingRatio << "): " << targetNumVertices << std::endl;
-	// 	mesh.simplifyQEM(targetNumVertices);
-	// 	mesh.save("output_initial=" + std::to_string(numInitialVertices) +
-	// 			  "_target=" + std::to_string(targetNumVertices) +
-	// 			  "_result=" + std::to_string(mesh.numVertices()) + ".obj");
-	// }
+	std::cout << "Point cloud size: " << pointCloud.points.size() << std::endl;
+	for (auto p : pointCloud.points)
+	{
+		std::cout << p << std::endl;
+	}
+	for (auto n : pointCloud.normals)
+	{
+		std::cout << n << std::endl;
+	}
 
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
+	// Add the mesh to the scene
+	scene.addMesh(mesh);
+
+	// --------------------------------------------------
 
 	auto initialState = glfwGetKey(scene.window, GLFW_KEY_Q);
-
-	scene.addMesh(mesh);
 
 	// render loop
 	while (!scene.shouldClose())

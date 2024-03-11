@@ -97,8 +97,8 @@ public:
 			// return -1;
 		}
 
-		// shaderProgram = Shader("shaders/basic.vert", "shaders/basic.frag");
-		// shaderProgram.use();
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	~Scene()

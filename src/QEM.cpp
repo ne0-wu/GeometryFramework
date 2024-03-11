@@ -1,3 +1,5 @@
+// This file implements the Quadric Error Metrics (QEM) simplification algorithm.
+
 #include <vector>
 #include <map>
 #include <algorithm>

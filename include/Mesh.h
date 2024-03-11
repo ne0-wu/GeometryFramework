@@ -10,6 +10,19 @@
 
 #include "GLMesh.h"
 
+class PointCloud
+{
+public:
+	std::vector<Eigen::Vector3d> points;
+	std::vector<Eigen::Vector3d> normals;
+
+	void reserve(int numPoints)
+	{
+		points.reserve(numPoints);
+		normals.reserve(numPoints);
+	}
+};
+
 struct MyTraits : public OpenMesh::DefaultTraits
 {
 	typedef OpenMesh::Vec3d Point;
@@ -116,4 +129,8 @@ public:
 	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
 	std::pair<double, Point> optimalPlacement(HalfedgeHandle edge, const Eigen::Matrix4d &Q);
 	void collapseEdge(HalfedgeHandle edge, Point contractedPosition);
+
+	// Generate point cloud
+	// --------------------
+	PointCloud pointCloud(int numPoints, bool useNormals = false);
 };
