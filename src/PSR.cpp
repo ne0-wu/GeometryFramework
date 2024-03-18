@@ -179,6 +179,23 @@ struct Node
 			return children[childIndex(center, point)].findLeaf(point);
 	}
 
+	// Base function for FEM
+	double baseFunc(Eigen::Vector3d x)
+	{
+		auto spline = [](double t)
+		{
+			if (abs(t) <= 0.5)
+				return 0.75 - t * t;
+			else if (abs(t) <= 1.5)
+				return 0.5 * pow(1.5 - abs(t), 2);
+			else
+				return 0.0;
+		};
+
+		x = (x - center) / size;
+		return spline(x.x()) * spline(x.y()) * spline(x.z()) / pow(size, 3);
+	}
+
 	// Debug
 	void print()
 	{
