@@ -130,13 +130,6 @@ struct Node
 			children.emplace_back(childCenter(center, halfSize, i), halfSize, depth + 1);
 
 		// Move point to children
-		// int childIndex = 0;
-		// if (data.x() >= center.x())
-		// 	childIndex |= 1;
-		// if (data.y() >= center.y())
-		// 	childIndex |= 2;
-		// if (data.z() >= center.z())
-		// 	childIndex |= 4;
 		children[childIndex(center, data)].insertPoint(data, index);
 
 		// Clear point
