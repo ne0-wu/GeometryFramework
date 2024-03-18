@@ -10,9 +10,8 @@
 
 #include "GLMesh.h"
 
-class PointCloud
+struct PointCloud
 {
-public:
 	std::vector<Eigen::Vector3d> points;
 	std::vector<Eigen::Vector3d> normals;
 
@@ -28,8 +27,8 @@ struct MyTraits : public OpenMesh::DefaultTraits
 	typedef OpenMesh::Vec3d Point;
 	typedef OpenMesh::Vec3d Normal;
 
-	VertexAttributes(OpenMesh::Attributes::Status);
-	FaceAttributes(OpenMesh::Attributes::Status);
+	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
+	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
 	EdgeAttributes(OpenMesh::Attributes::Status);
 	HalfedgeAttributes(OpenMesh::Attributes::Status);
 };
