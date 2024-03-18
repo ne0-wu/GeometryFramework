@@ -115,28 +115,14 @@ struct Node
 	// Check if node is empty
 	bool isEmpty() const { return index == -1; }
 
+	// Split node into 8 children
 	void splitNode()
 	{
 		// Create children
 		double halfSize = size / 2;
 		children.reserve(8);
 		for (int i = 0; i < 8; i++)
-		{
-			// Eigen::Vector3d childCenter = center;
-			// if (i & 1)
-			// 	childCenter.x() += halfSize;
-			// else
-			// 	childCenter.x() -= halfSize;
-			// if (i & 2)
-			// 	childCenter.y() += halfSize;
-			// else
-			// 	childCenter.y() -= halfSize;
-			// if (i & 4)
-			// 	childCenter.z() += halfSize;
-			// else
-			// 	childCenter.z() -= halfSize;
 			children.emplace_back(childCenter(center, halfSize, i), halfSize, depth + 1);
-		}
 
 		// Move point to children
 		// int childIndex = 0;
@@ -152,6 +138,7 @@ struct Node
 		index = -1;
 	}
 
+	// Insert point into the octree
 	bool insertPoint(const Eigen::Vector3d &point, int index)
 	{
 		if (isLeaf()) // Node is a leaf
@@ -175,17 +162,16 @@ struct Node
 			}
 		}
 		else // Node is not a leaf, insert point into children
-		{
-			// int childIndex = 0;
-			// if (point.x() >= center.x())
-			// 	childIndex |= 1;
-			// if (point.y() >= center.y())
-			// 	childIndex |= 2;
-			// if (point.z() >= center.z())
-			// 	childIndex |= 4;
-
 			return children[childIndex(center, point)].insertPoint(point, index);
-		}
+	}
+
+	// Find leaf node containing the point
+	Node *findLeaf(const Eigen::Vector3d &point)
+	{
+		if (isLeaf())
+			return this;
+		else
+			return children[childIndex(center, point)].findLeaf(point);
 	}
 
 	// Function
@@ -235,6 +221,29 @@ class Octree
 {
 private:
 	Node root;
+	int maxDepth = 0;
+
+	// Trade time with space
+	std::vector<Node *> leafNodes;
+	std::vector<Node *> nonEmptyLeafNodes;
+
+	void updateLeafNodes()
+	{
+		leafNodes.clear();
+		traverse([&](Node &node)
+				 {
+				if (node.isLeaf())
+					leafNodes.push_back(&node); });
+	}
+
+	void updateNonEmptyLeafNodes()
+	{
+		nonEmptyLeafNodes.clear();
+		traverse([&](Node &node)
+				 {
+				if (node.isLeaf() && !node.isEmpty())
+					nonEmptyLeafNodes.push_back(&node); });
+	}
 
 public:
 	Octree(const PointCloud &pointCloud, Eigen::Vector3d center, double size)
@@ -242,10 +251,9 @@ public:
 	{
 		for (int i = 0; i < pointCloud.points.size(); i++)
 			insertPoint(pointCloud.points[i], i);
-
-		// refine();
 	}
 
+	// Traverse the octree with a callback function
 	void traverse(std::function<void(Node &)> callback)
 	{
 		std::queue<Node *> queue;
@@ -263,20 +271,26 @@ public:
 		}
 	}
 
-	int maxDepth()
+	// Max depth of the octree
+	void updateMaxDepth()
 	{
-		int maxDepth = 0;
-		traverse([&maxDepth](Node &node)
+		maxDepth = 0;
+		int depth = 0;
+		traverse([&depth](Node &node)
 				 {
-				if (node.depth > maxDepth)
-					maxDepth = node.depth; });
-		return maxDepth;
+				if (node.depth > depth)
+					depth = node.depth; });
+		maxDepth = depth;
 	}
 
-	void refine() // TODO:
-	{
-		int maxDepth = this->maxDepth();
+	int getMaxDepth() { return maxDepth; }
 
+	// Refine the octree
+	void refine()
+	{
+		updateMaxDepth();
+
+		// Split nodes until all non-empty leaf nodes are at the maximum depth
 		std::queue<Node *> queue;
 		queue.push(&root);
 		while (!queue.empty())
@@ -291,17 +305,13 @@ public:
 				for (auto &child : node->children)
 					queue.push(&child);
 		}
-	}
 
-	// Get all leaf nodes
-	std::vector<Node> getLeafNodes()
-	{
-		std::vector<Node> leafNodes;
-		traverse([&leafNodes](Node &node)
-				 {
-				if (node.isLeaf())
-					leafNodes.push_back(node); });
-		return leafNodes;
+		// TODO: Split nodes until all neighbors of non-empty leaf nodes are at the maximum depth
+		updateNonEmptyLeafNodes();
+		for (auto &node : nonEmptyLeafNodes)
+		{
+			;
+		}
 	}
 
 	// Debug
@@ -322,16 +332,4 @@ void testOctree(PointCloud pointCloud)
 	tree.refine();
 
 	tree.print();
-
-	auto leafNodes = tree.getLeafNodes();
-	int numNonEmptyLeafNodes = 0;
-	std::cout << "Leaf nodes: " << leafNodes.size() << std::endl;
-	for (auto &node : leafNodes)
-	{
-		node.print();
-		if (!node.isEmpty())
-			numNonEmptyLeafNodes++;
-	}
-	std::cout << "Leaf nodes:" << leafNodes.size() << std::endl;
-	std::cout << "Non-empty leaf nodes: " << numNonEmptyLeafNodes << std::endl;
 }
