@@ -15,23 +15,29 @@ int main()
 	// --------------------------------------------------
 
 	// Load mesh and fit into unit ball
-	Mesh mesh("meshes/spot_quadrangulated.obj");
+	Mesh mesh("meshes/cathead.obj");
 	mesh.fitIntoUnitBall();
 	mesh.scale(0.9);
 
+	std::cout << mesh.numVertices() << " vertices" << std::endl;
+
 	// Point cloud test
 
-	PointCloud pointCloud = mesh.pointCloud(1000, true);
+	PointCloud pointCloud = mesh.pointCloud(200, true);
 
 	std::cout << "Point cloud size: " << pointCloud.points.size() << std::endl;
-	for (auto p : pointCloud.points)
-	{
-		std::cout << p << std::endl;
-	}
-	for (auto n : pointCloud.normals)
-	{
-		std::cout << n << std::endl;
-	}
+	// for (auto p : pointCloud.points)
+	// {
+	// 	std::cout << p << std::endl;
+	// }
+	// for (auto n : pointCloud.normals)
+	// {
+	// 	std::cout << n << std::endl;
+	// }
+
+	testOctree(pointCloud);
+
+	// --------------------------------------------------
 
 	// Add the mesh to the scene
 	scene.addMesh(mesh);

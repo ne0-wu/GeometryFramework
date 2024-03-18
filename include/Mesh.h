@@ -133,3 +133,6 @@ public:
 	// --------------------
 	PointCloud pointCloud(int numPoints, bool useNormals = false);
 };
+
+// debug
+void testOctree(PointCloud pointCloud);

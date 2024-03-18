@@ -58,28 +58,161 @@ PointCloud Mesh::pointCloud(int numPoints, bool useNormals)
 	return pointCloud;
 }
 
+struct Node
+{
+	// Node box
+	Eigen::Vector3d center = Eigen::Vector3d::Zero();
+	double size = 1.0;
+
+	// Tree structure
+	std::vector<Node> children;
+
+	// Contained point
+	int index = -1;
+	Eigen::Vector3d point;
+
+	// Constructors
+	Node() = default;
+
+	Node(const Eigen::Vector3d &center, double size)
+		: center(center), size(size) {}
+
+	// Check if node is a leaf
+	bool isLeaf() const { return children.empty(); }
+
+	// Check if node is empty
+	bool isEmpty() const { return index == -1; }
+
+	// Insert points
+	void splitNode()
+	{
+		double halfSize = size / 2;
+		children.reserve(8);
+		for (int i = 0; i < 8; i++)
+		{
+			Eigen::Vector3d childCenter = center;
+			if (i & 1)
+				childCenter.x() += halfSize;
+			else
+				childCenter.x() -= halfSize;
+			if (i & 2)
+				childCenter.y() += halfSize;
+			else
+				childCenter.y() -= halfSize;
+			if (i & 4)
+				childCenter.z() += halfSize;
+			else
+				childCenter.z() -= halfSize;
+			children.emplace_back(childCenter, halfSize);
+		}
+	}
+
+	bool insertPoint(const Eigen::Vector3d &point, int index)
+	{
+		if (isLeaf()) // Node is a leaf
+		{
+			if (isEmpty()) // Node is empty
+			{
+				this->index = index;
+				this->point = point;
+				return true;
+			}
+			else // Node already contains a point
+			{
+				if (this->index == index)
+					return true;
+
+				// Split node and insert both points
+				splitNode();
+				bool result = true;
+				result &= insertPoint(point, index);
+				result &= insertPoint(this->point, this->index);
+
+				// Clear point
+				this->index = -1;
+
+				return result;
+			}
+		}
+		else // Node is not a leaf, insert point into children
+		{
+			int childIndex = 0;
+			if (point.x() >= center.x())
+				childIndex |= 1;
+			if (point.y() >= center.y())
+				childIndex |= 2;
+			if (point.z() >= center.z())
+				childIndex |= 4;
+
+			return children[childIndex].insertPoint(point, index);
+		}
+	}
+
+	// Debug
+	void print(int depth = 0)
+	{
+		// Indent
+		auto indent = [](int depth)
+		{
+			for (int i = 0; i < depth; i++)
+				std::cout << "    ";
+		};
+
+		if (isLeaf()) // Leaf node
+		{
+			if (isEmpty()) // Empty leaf node
+			{
+				indent(depth);
+				std::cout << "Node: " << center.transpose() << " " << size << " EMPTY" << std::endl;
+			}
+			else // Non-empty leaf node
+			{
+				indent(depth);
+				std::cout << "Node: " << center.transpose() << " " << size << " " << index << std::endl;
+				indent(depth);
+				bool isInside = (point.x() < center.x() + size) && (point.x() > center.x() - size) &&
+								(point.y() < center.y() + size) && (point.y() > center.y() - size) &&
+								(point.z() < center.z() + size) && (point.z() > center.z() - size);
+				std::cout << "└-Point: " << point.transpose() << " is inside: " << isInside << std::endl;
+			}
+		}
+		else // Non-leaf node
+		{
+			indent(depth);
+			std::cout << "Node: " << center.transpose() << " " << size << std::endl;
+		}
+
+		// Print children
+		for (auto &child : children)
+			child.print(depth + 1);
+	}
+};
+
 class Octree
 {
 private:
-	struct Node
-	{
-		Eigen::Vector3d center;
-		double size;
-	};
-
-	std::unique_ptr<Node> root;
+	Node root;
 
 public:
-	Octree(const PointCloud &pointCloud, const Eigen::Vector3d &minBound, const Eigen::Vector3d &maxBound)
+	Octree(const PointCloud &pointCloud, Eigen::Vector3d center, double size)
+		: root(center, size)
 	{
+		for (int i = 0; i < pointCloud.points.size(); i++)
+			insertPoint(pointCloud.points[i], i);
 	}
+
+	// debug
+	void print() { root.print(); }
 
 private:
-	void insertPoint(std::unique_ptr<Node> &node, const Eigen::Vector3d &point, int index)
+	void insertPoint(Eigen::Vector3d point, int index)
 	{
-	}
-
-	void splitNode(std::unique_ptr<Node> &node)
-	{
+		root.insertPoint(point, index);
 	}
 };
+
+void testOctree(PointCloud pointCloud)
+{
+	Octree tree(pointCloud, Eigen::Vector3d::Zero(), 1.0);
+	tree.print();
+}
