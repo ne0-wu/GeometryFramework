@@ -23,7 +23,7 @@ int main()
 
 	// Point cloud test
 
-	PointCloud pointCloud = mesh.pointCloud(200, true);
+	PointCloud pointCloud = mesh.generatePointCloud(100, true);
 
 	std::cout << "Point cloud size: " << pointCloud.points.size() << std::endl;
 	// for (auto p : pointCloud.points)

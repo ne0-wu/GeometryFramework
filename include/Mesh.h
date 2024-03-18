@@ -131,7 +131,7 @@ public:
 
 	// Generate point cloud
 	// --------------------
-	PointCloud pointCloud(int numPoints, bool useNormals = false);
+	PointCloud generatePointCloud(int numPoints, bool useNormals = false);
 };
 
 // debug
