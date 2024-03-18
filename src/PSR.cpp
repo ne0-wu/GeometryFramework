@@ -3,6 +3,8 @@
 #include <random>
 #include <queue>
 
+#include <Eigen/Sparse>
+
 #include "Mesh.h"
 
 PointCloud Mesh::generatePointCloud(int numPoints, bool useNormals)
@@ -103,6 +105,9 @@ struct Node
 	int index = -1;
 	Eigen::Vector3d data;
 
+	// Neighbor nodes for trilinear interpolation, size (if not empty) should be 8
+	std::vector<Node *> neighbors;
+
 	// Constructors
 	Node() = default;
 
@@ -174,9 +179,6 @@ struct Node
 			return children[childIndex(center, point)].findLeaf(point);
 	}
 
-	// Function
-	// TODO:
-
 	// Debug
 	void print()
 	{
@@ -221,11 +223,23 @@ class Octree
 {
 private:
 	Node root;
-	int maxDepth = 0;
 
 	// Trade time with space
+	int maxDepth = 0;
 	std::vector<Node *> leafNodes;
 	std::vector<Node *> nonEmptyLeafNodes;
+
+	// Max depth of the octree
+	void updateMaxDepth()
+	{
+		maxDepth = 0;
+		int depth = 0;
+		traverse([&depth](Node &node)
+				 {
+				if (node.depth > depth)
+					depth = node.depth; });
+		maxDepth = depth;
+	}
 
 	void updateLeafNodes()
 	{
@@ -271,19 +285,9 @@ public:
 		}
 	}
 
-	// Max depth of the octree
-	void updateMaxDepth()
-	{
-		maxDepth = 0;
-		int depth = 0;
-		traverse([&depth](Node &node)
-				 {
-				if (node.depth > depth)
-					depth = node.depth; });
-		maxDepth = depth;
-	}
-
 	int getMaxDepth() { return maxDepth; }
+	auto getLeafNodeList() { return leafNodes; }
+	auto getNonEmptyLeafNodeList() { return nonEmptyLeafNodes; }
 
 	// Refine the octree
 	void refine()
@@ -312,7 +316,32 @@ public:
 		{
 			;
 		}
+
+		updateLeafNodes();
 	}
+
+	// TODO: Laplacian matrix
+	Eigen::SparseMatrix<double> laplacianMatrix()
+	{
+		int n = leafNodes.size();
+		Eigen::SparseMatrix<double> L(n, n);
+		L.reserve(50 * n);
+
+		for (int i = 0; i < n; i++)
+		{
+			for (int j = 0; j < n; j++)
+			{
+				if (i == j)
+				{
+				}
+				else
+				{
+				}
+			}
+		}
+	}
+
+	// TODO: Indicator function
 
 	// Debug
 	void print() { root.print(); }
