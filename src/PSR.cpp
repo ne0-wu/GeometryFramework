@@ -1,6 +1,7 @@
 // This file implements the Poisson Surface Reconstruction (PSR) algorithm.
 
 #include <random>
+#include <queue>
 
 #include "Mesh.h"
 
@@ -69,7 +70,7 @@ struct Node
 
 	// Contained point
 	int index = -1;
-	Eigen::Vector3d point;
+	Eigen::Vector3d data;
 
 	// Constructors
 	Node() = default;
@@ -114,7 +115,7 @@ struct Node
 			if (isEmpty()) // Node is empty
 			{
 				this->index = index;
-				this->point = point;
+				this->data = point;
 				return true;
 			}
 			else // Node already contains a point
@@ -126,7 +127,7 @@ struct Node
 				splitNode();
 				bool result = true;
 				result &= insertPoint(point, index);
-				result &= insertPoint(this->point, this->index);
+				result &= insertPoint(this->data, this->index);
 
 				// Clear point
 				this->index = -1;
@@ -147,6 +148,9 @@ struct Node
 			return children[childIndex].insertPoint(point, index);
 		}
 	}
+
+	// Function
+	// TODO:
 
 	// Debug
 	void print(int depth = 0)
@@ -170,10 +174,10 @@ struct Node
 				indent(depth);
 				std::cout << "Node: " << center.transpose() << " " << size << " " << index << std::endl;
 				indent(depth);
-				bool isInside = (point.x() < center.x() + size) && (point.x() > center.x() - size) &&
-								(point.y() < center.y() + size) && (point.y() > center.y() - size) &&
-								(point.z() < center.z() + size) && (point.z() > center.z() - size);
-				std::cout << "└-Point: " << point.transpose() << " is inside: " << isInside << std::endl;
+				bool isInside = (data.x() < center.x() + size) && (data.x() > center.x() - size) &&
+								(data.y() < center.y() + size) && (data.y() > center.y() - size) &&
+								(data.z() < center.z() + size) && (data.z() > center.z() - size);
+				std::cout << "└-Point: " << data.transpose() << " is inside: " << isInside << std::endl;
 			}
 		}
 		else // Non-leaf node
@@ -201,7 +205,26 @@ public:
 			insertPoint(pointCloud.points[i], i);
 	}
 
-	// debug
+	// Get all leaf nodes
+	std::vector<Node> getLeafNodes()
+	{
+		std::vector<Node> leafNodes;
+		std::queue<Node *> queue;
+		queue.push(&root);
+		while (!queue.empty())
+		{
+			Node *node = queue.front();
+			queue.pop();
+			if (node->isLeaf())
+				leafNodes.push_back(*node);
+			else
+				for (auto &child : node->children)
+					queue.push(&child);
+		}
+		return leafNodes;
+	}
+
+	// Debug
 	void print() { root.print(); }
 
 private:
@@ -214,5 +237,16 @@ private:
 void testOctree(PointCloud pointCloud)
 {
 	Octree tree(pointCloud, Eigen::Vector3d::Zero(), 1.0);
-	tree.print();
+	// tree.print();
+
+	auto leafNodes = tree.getLeafNodes();
+	int numNonEmptyLeafNodes = 0;
+	std::cout << "Leaf nodes: " << leafNodes.size() << std::endl;
+	for (auto &node : leafNodes)
+	{
+		node.print();
+		if (!node.isEmpty())
+			numNonEmptyLeafNodes++;
+	}
+	std::cout << "Non-empty leaf nodes: " << numNonEmptyLeafNodes << std::endl;
 }
