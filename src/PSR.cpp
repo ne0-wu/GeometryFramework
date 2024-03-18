@@ -189,6 +189,15 @@ struct Node
 		return spline(x.x()) * spline(x.y()) * spline(x.z()) / pow(size, 3);
 	}
 
+	// Traverse the octree by depth first
+	void depthFirst(std::function<void(Node &)> callback)
+	{
+		callback(*this);
+		if (!isLeaf())
+			for (auto &child : children)
+				child.depthFirst(callback);
+	}
+
 	// Debug
 	void print()
 	{
@@ -222,10 +231,6 @@ struct Node
 			indent(depth);
 			std::cout << "Node: " << center.transpose() << " Size: " << size << " Depth: " << depth << std::endl;
 		}
-
-		// Print children
-		for (auto &child : children)
-			child.print();
 	}
 };
 
@@ -239,13 +244,12 @@ private:
 	std::vector<Node *> leafNodes;
 	std::vector<Node *> nonEmptyLeafNodes;
 
-	// Max depth of the octree
 	void updateMaxDepth()
 	{
 		maxDepth = 0;
 		int depth = 0;
-		traverse([&depth](Node &node)
-				 {
+		breadthFirst([&depth](Node &node)
+					 {
 				if (node.depth > depth)
 					depth = node.depth; });
 		maxDepth = depth;
@@ -254,8 +258,8 @@ private:
 	void updateLeafNodes()
 	{
 		leafNodes.clear();
-		traverse([&](Node &node)
-				 {
+		breadthFirst([&](Node &node)
+					 {
 				if (node.isLeaf())
 					leafNodes.push_back(&node); });
 	}
@@ -263,22 +267,20 @@ private:
 	void updateNonEmptyLeafNodes()
 	{
 		nonEmptyLeafNodes.clear();
-		traverse([&](Node &node)
-				 {
+		breadthFirst([&](Node &node)
+					 {
 				if (node.isLeaf() && !node.isEmpty())
 					nonEmptyLeafNodes.push_back(&node); });
 	}
 
-public:
-	Octree(const PointCloud &pointCloud, Eigen::Vector3d center, double size)
-		: root(center, size)
+	// Traverse the octree by depth first
+	void depthFirst(std::function<void(Node &)> callback)
 	{
-		for (int i = 0; i < pointCloud.points.size(); i++)
-			insertPoint(pointCloud.points[i], i);
+		root.depthFirst(callback);
 	}
 
-	// Traverse the octree with a callback function
-	void traverse(std::function<void(Node &)> callback)
+	// Traverse the octree by breadth first
+	void breadthFirst(std::function<void(Node &)> callback)
 	{
 		std::queue<Node *> queue;
 		queue.push(&root);
@@ -293,6 +295,14 @@ public:
 				for (auto &child : node->children)
 					queue.push(&child);
 		}
+	}
+
+public:
+	Octree(const PointCloud &pointCloud, Eigen::Vector3d center, double size)
+		: root(center, size)
+	{
+		for (int i = 0; i < pointCloud.points.size(); i++)
+			insertPoint(pointCloud.points[i], i);
 	}
 
 	int getMaxDepth() { return maxDepth; }
@@ -354,7 +364,17 @@ public:
 	// TODO: Indicator function
 
 	// Debug
-	void print() { root.print(); }
+	void printDepthFirst()
+	{
+		depthFirst([](Node &node)
+				   { node.print(); });
+	}
+
+	void printBreadthFirst()
+	{
+		breadthFirst([](Node &node)
+					 { node.print(); });
+	}
 
 private:
 	void insertPoint(Eigen::Vector3d point, int index)
@@ -366,9 +386,11 @@ private:
 void testOctree(PointCloud pointCloud)
 {
 	Octree tree(pointCloud, Eigen::Vector3d::Zero(), 1.0);
-	tree.print();
+	tree.printDepthFirst();
 
 	tree.refine();
 
-	tree.print();
+	tree.printDepthFirst();
+
+	tree.printBreadthFirst();
 }
