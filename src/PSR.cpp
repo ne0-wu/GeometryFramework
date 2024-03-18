@@ -59,6 +59,36 @@ PointCloud Mesh::generatePointCloud(int numPoints, bool useNormals)
 	return pointCloud;
 }
 
+int childIndex(Eigen::Vector3d center, Eigen::Vector3d point)
+{
+	int index = 0;
+	if (point.x() >= center.x())
+		index |= 1;
+	if (point.y() >= center.y())
+		index |= 2;
+	if (point.z() >= center.z())
+		index |= 4;
+	return index;
+}
+
+Eigen::Vector3d childCenter(Eigen::Vector3d center, double halfSize, int index)
+{
+	Eigen::Vector3d childCenter = center;
+	if (index & 1)
+		childCenter.x() += halfSize;
+	else
+		childCenter.x() -= halfSize;
+	if (index & 2)
+		childCenter.y() += halfSize;
+	else
+		childCenter.y() -= halfSize;
+	if (index & 4)
+		childCenter.z() += halfSize;
+	else
+		childCenter.z() -= halfSize;
+	return childCenter;
+}
+
 struct Node
 {
 	// Node box
@@ -92,31 +122,31 @@ struct Node
 		children.reserve(8);
 		for (int i = 0; i < 8; i++)
 		{
-			Eigen::Vector3d childCenter = center;
-			if (i & 1)
-				childCenter.x() += halfSize;
-			else
-				childCenter.x() -= halfSize;
-			if (i & 2)
-				childCenter.y() += halfSize;
-			else
-				childCenter.y() -= halfSize;
-			if (i & 4)
-				childCenter.z() += halfSize;
-			else
-				childCenter.z() -= halfSize;
-			children.emplace_back(childCenter, halfSize, depth + 1);
+			// Eigen::Vector3d childCenter = center;
+			// if (i & 1)
+			// 	childCenter.x() += halfSize;
+			// else
+			// 	childCenter.x() -= halfSize;
+			// if (i & 2)
+			// 	childCenter.y() += halfSize;
+			// else
+			// 	childCenter.y() -= halfSize;
+			// if (i & 4)
+			// 	childCenter.z() += halfSize;
+			// else
+			// 	childCenter.z() -= halfSize;
+			children.emplace_back(childCenter(center, halfSize, i), halfSize, depth + 1);
 		}
 
 		// Move point to children
-		int childIndex = 0;
-		if (data.x() >= center.x())
-			childIndex |= 1;
-		if (data.y() >= center.y())
-			childIndex |= 2;
-		if (data.z() >= center.z())
-			childIndex |= 4;
-		children[childIndex].insertPoint(data, index);
+		// int childIndex = 0;
+		// if (data.x() >= center.x())
+		// 	childIndex |= 1;
+		// if (data.y() >= center.y())
+		// 	childIndex |= 2;
+		// if (data.z() >= center.z())
+		// 	childIndex |= 4;
+		children[childIndex(center, data)].insertPoint(data, index);
 
 		// Clear point
 		index = -1;
@@ -146,15 +176,15 @@ struct Node
 		}
 		else // Node is not a leaf, insert point into children
 		{
-			int childIndex = 0;
-			if (point.x() >= center.x())
-				childIndex |= 1;
-			if (point.y() >= center.y())
-				childIndex |= 2;
-			if (point.z() >= center.z())
-				childIndex |= 4;
+			// int childIndex = 0;
+			// if (point.x() >= center.x())
+			// 	childIndex |= 1;
+			// if (point.y() >= center.y())
+			// 	childIndex |= 2;
+			// if (point.z() >= center.z())
+			// 	childIndex |= 4;
 
-			return children[childIndex].insertPoint(point, index);
+			return children[childIndex(center, point)].insertPoint(point, index);
 		}
 	}
 
