@@ -1,4 +1,4 @@
-// This file implements the Poisson Surface Reconstruction (PSR) algorithm.
+﻿// This file implements the Poisson Surface Reconstruction (PSR) algorithm.
 
 #include <random>
 #include <queue>
@@ -170,6 +170,31 @@ struct Node
 			return this;
 		else
 			return children[childIndex(center, point)].findLeaf(point);
+	}
+
+	// Intersection of support of base function of two nodes
+	struct Intersection
+	{
+		bool isIntersecting = false;
+		Eigen::Vector3d min;
+		Eigen::Vector3d max;
+	};
+
+	Intersection operator&(const Node &other)
+	{
+		Intersection intersection;
+		Eigen::Vector3d min = center.array() - size * 1.5;
+		Eigen::Vector3d max = center.array() + size * 1.5;
+		Eigen::Vector3d otherMin = other.center.array() - other.size * 1.5;
+		Eigen::Vector3d otherMax = other.center.array() + other.size * 1.5;
+
+		intersection.min = min.cwiseMax(otherMin);
+		intersection.max = max.cwiseMin(otherMax);
+
+		if ((intersection.min.array() < intersection.max.array()).all())
+			intersection.isIntersecting = true;
+
+		return intersection;
 	}
 
 	// Base function for FEM
