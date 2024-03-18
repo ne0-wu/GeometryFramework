@@ -1,3 +1,8 @@
-.vscode/
+# Hidden files
+.*/
+
+# Compiled files
 build/
+
+# Meshes
 !*.obj
