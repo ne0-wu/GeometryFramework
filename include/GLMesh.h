@@ -11,7 +11,7 @@ class GLMesh
 {
 private:
 	GLuint VAO, VBO, EBO;
-	Shader shaderPorgram;
+	Shader shaderProgram;
 
 	void initializeMeshBuffers(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
 	{
@@ -73,12 +73,12 @@ public:
 
 	void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
 	{
-		shaderPorgram = Shader(vertexShaderSource, fragmentShaderSource, fromFile);
+		shaderProgram = Shader(vertexShaderSource, fragmentShaderSource, fromFile);
 	}
 
-	void setShader(const Shader &shader) { shaderPorgram = shader; }
+	void setShader(const Shader &shader) { shaderProgram = shader; }
 
-	void bindShader() { shaderPorgram.use(); }
+	void bindShader() { shaderProgram.use(); }
 
 	void draw()
 	{
@@ -96,7 +96,7 @@ public:
 
 	int getShaderID()
 	{
-		return shaderPorgram.getID();
+		return shaderProgram.getID();
 	}
 
 	int getUniformLocation(const std::string &name)

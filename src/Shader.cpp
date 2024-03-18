@@ -70,7 +70,7 @@ std::string Shader::readShaderCodeFromFile(const std::string &shaderPath)
 	}
 	catch (std::ifstream::failure &e)
 	{
-		std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+		std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << std::endl;
 	}
 	return shaderStream.str();
 }
