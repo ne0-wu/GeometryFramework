@@ -287,15 +287,6 @@ struct Node
 		return Eigen::Vector3d(dSpline(x.x()), dSpline(x.y()), dSpline(x.z())) / size;
 	}
 
-	// Traverse the octree by depth first
-	void depthFirst(std::function<void(Node &)> callback)
-	{
-		callback(*this);
-		if (!isLeaf())
-			for (auto &child : children)
-				child.depthFirst(callback);
-	}
-
 	// TODO: Stiffness matrix element
 	double stiffnessMatrixElement(Node &other, Intersection &intersection)
 	{
@@ -311,6 +302,15 @@ struct Node
 		GaussianQuadrature gauss(GAUSS_QUADRAQURE_N);
 
 		return 0;
+	}
+
+	// Traverse the octree by depth first
+	void depthFirst(std::function<void(Node &)> callback)
+	{
+		callback(*this);
+		if (!isLeaf())
+			for (auto &child : children)
+				child.depthFirst(callback);
 	}
 
 	// Debug
@@ -349,9 +349,8 @@ struct Node
 	}
 };
 
-class Octree
+struct Octree
 {
-private:
 	Node root;
 
 	// Trade time with space
@@ -412,17 +411,12 @@ private:
 		}
 	}
 
-public:
 	Octree(const PointCloud &pointCloud, Eigen::Vector3d center, double size)
 		: root(center, size)
 	{
 		for (int i = 0; i < pointCloud.points.size(); i++)
 			insertPoint(pointCloud.points[i], i);
 	}
-
-	int getMaxDepth() { return maxDepth; }
-	auto getLeafNodeList() { return leafNodes; }
-	auto getNonEmptyLeafNodeList() { return nonEmptyLeafNodes; }
 
 	// Refine the octree
 	void refine()
