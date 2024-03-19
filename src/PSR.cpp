@@ -177,6 +177,7 @@ struct Node
 	bool isEmpty() const { return index == -1; }
 
 	// Split node into 8 children
+	// Returns the pointer to the child which is supposed to contain the point
 	void splitNode()
 	{
 		// Create children
@@ -220,7 +221,7 @@ struct Node
 	}
 
 	// Find leaf node containing the point
-	Node *findLeaf(const Eigen::Vector3d &point)
+	Node *findLeaf(const Eigen::Vector3d point)
 	{
 		if (isLeaf())
 			return this;
@@ -343,23 +344,57 @@ struct Node
 			if (isEmpty()) // Empty leaf node
 			{
 				indent(depth);
-				std::cout << "Node: " << center.transpose() << " Size: " << size << " Depth: " << depth << " EMPTY" << std::endl;
+				std::cout << "Node: " << center.transpose()
+						  << " Size: " << size
+						  << " Depth: " << depth
+						  << " EMPTY" << std::endl;
 			}
 			else // Non-empty leaf node
 			{
 				indent(depth);
-				std::cout << "Node: " << center.transpose() << " Size: " << size << " Depth: " << depth << std::endl;
+				std::cout << "Node: " << center.transpose()
+						  << " Size: " << size
+						  << " Depth: " << depth
+						  << std::endl;
 				indent(depth);
 				bool isInside = (data.x() < center.x() + size) && (data.x() > center.x() - size) &&
 								(data.y() < center.y() + size) && (data.y() > center.y() - size) &&
 								(data.z() < center.z() + size) && (data.z() > center.z() - size);
-				std::cout << "└-Point: " << data.transpose() << " Index: " << index << " is inside: " << isInside << std::endl;
+				std::cout << "└-Point: " << data.transpose()
+						  << " Index: " << index
+						  << " is inside: " << isInside
+						  << std::endl;
+
+				printNeighbors();
 			}
 		}
 		else // Non-leaf node
 		{
 			indent(depth);
-			std::cout << "Node: " << center.transpose() << " Size: " << size << " Depth: " << depth << std::endl;
+			std::cout << "Node: " << center.transpose()
+					  << " Size: " << size
+					  << " Depth: " << depth
+					  << std::endl;
+		}
+	}
+
+	void printNeighbors()
+	{
+		// Indent
+		auto indent = [](int depth)
+		{
+			for (int i = 0; i < depth; i++)
+				std::cout << "    ";
+		};
+
+		for (auto &neighbor : neighbors)
+		{
+			indent(depth);
+			std::cout << "  Neighbor: " << neighbor->center.transpose()
+					  << " Size: " << neighbor->size
+					  << " Depth: " << neighbor->depth
+					  << " Distance: " << (neighbor->center - center).norm()
+					  << std::endl;
 		}
 	}
 };
@@ -433,6 +468,41 @@ struct Octree
 			insertPoint(pointCloud.points[i], i);
 	}
 
+	// Split nodes until all neighbors of non-empty leaf nodes are at the maximum depth
+	// According to the original paper, the neighbors of a node
+	// are 8 nodes that are closest to the sample point of the node.
+	void refineNeighbors(Node &node)
+	{
+		assert(node.isLeaf() && !node.isEmpty() && node.neighbors.empty());
+
+		node.neighbors.reserve(8);
+
+		// Imagine a virtual parent 'node', that contains the neighbors of the current node.
+		// Note that this virtual node is very likely not a real node in the octree.
+		// The virtual node is used to find the neighbors of the current node.
+		// We construct it manually and use the center of its children to find the neighbors.
+		Eigen::Vector3d c = (node.data / (2 * node.size)).array().round() * (2 * node.size);
+		double s = node.size * 2;
+		Node virtualNode(c, s);
+
+		for (int i = 0; i < 8; i++)
+		{
+			// Use the center of the children of the virtual node to find the neighbors
+			Eigen::Vector3d targetPoint = childCenter(c, s / 2, i);
+			Node *leaf = root.findLeaf(targetPoint);
+
+			// Split nodes until the neighbor node is at the maximum depth
+			while (leaf->depth < maxDepth)
+			{
+				leaf->splitNode();
+				leaf = leaf->findLeaf(targetPoint);
+			}
+
+			// Add the neighbor node to the neighbors of the current node
+			node.neighbors.push_back(leaf);
+		}
+	}
+
 	// Refine the octree
 	void refine()
 	{
@@ -454,18 +524,18 @@ struct Octree
 					queue.push(&child);
 		}
 
-		// TODO: Split nodes until all neighbors of non-empty leaf nodes are at the maximum depth
+		// Split nodes until all neighbors of non-empty leaf nodes are at the maximum depth
 		updateNonEmptyLeafNodes();
 		for (auto &node : nonEmptyLeafNodes)
-		{
-			;
-		}
+			refineNeighbors(*node);
 
 		updateLeafNodes();
 	}
 
-	// Laplacian matrix
-	Eigen::SparseMatrix<double> laplacianMatrix()
+	// Stiffness matrix
+	// Note that the leaf nodes are sorted by Breadth-first order,
+	// so larger elements are more likely to be at the start of the matrix
+	Eigen::SparseMatrix<double> stiffnessMatrix()
 	{
 		int n = leafNodes.size();
 		Eigen::SparseMatrix<double> L(n, n);
@@ -487,6 +557,13 @@ struct Octree
 		}
 
 		return L;
+	}
+
+	// TODO: Load vector
+	Eigen::SparseVector<double> loadVector()
+	{
+		Eigen::SparseVector<double> b(leafNodes.size());
+		return b;
 	}
 
 	// TODO: Indicator function
@@ -568,38 +645,50 @@ void testGaussianQuadrature(int n)
 		 expAccurate);
 }
 
+// Spy a sparse matrix by writing it to a PNG file
+
 // #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
 
-void spy(Eigen::SparseMatrix<double> matrix)
+enum SpyType
 {
-	std::vector<unsigned char> image;
+	CONTINUOUS,
+	DISCRETE,
+};
+
+void spy(Eigen::SparseMatrix<double> matrix, std::string filename, SpyType spyType = DISCRETE)
+{
 	int width = matrix.cols();
 	int height = matrix.rows();
-	image.resize(width * height);
+
+	std::vector<unsigned char> image(width * height, 255);
 
 	double max = 0.0;
-
-	// Traverse through the sparse matrix
 	for (int k = 0; k < matrix.outerSize(); ++k)
 		for (Eigen::SparseMatrix<double>::InnerIterator it(matrix, k); it; ++it)
 		{
 			max = std::max(max, it.value());
 		}
 
-	// Traverse through the sparse matrix
 	for (int k = 0; k < matrix.outerSize(); ++k)
 		for (Eigen::SparseMatrix<double>::InnerIterator it(matrix, k); it; ++it)
 		{
 			int i = it.row();
 			int j = it.col();
 			double value = it.value();
-			// image[i * width + j] = (unsigned char)(value / max * 255);
-			image[i * width + j] = 255;
+			switch (spyType)
+			{
+			case CONTINUOUS:
+				image[i * width + j] = (unsigned char)(255 - value / max * 255);
+				break;
+			case DISCRETE:
+				image[i * width + j] = 0;
+				break;
+			}
 		}
 
 	stbi_flip_vertically_on_write(true);
-	stbi_write_png("spy.png", width, height, 1, image.data(), 0);
+	stbi_write_png(filename.data(), width, height, 1, image.data(), 0);
 }
 
 void testOctree(PointCloud pointCloud)
@@ -615,13 +704,16 @@ void testOctree(PointCloud pointCloud)
 
 	tree.refine();
 
+	tree.printBreadthFirst();
+
 	// tree.printDepthFirst();
 
 	// tree.printBreadthFirst();
 
-	auto L = tree.laplacianMatrix();
+	auto L = tree.stiffnessMatrix();
 
-	spy(L);
+	spy(L, "output1.png");
+	spy(L, "output2.png", CONTINUOUS);
 
 	// std::cout << L << std::endl;
 }
