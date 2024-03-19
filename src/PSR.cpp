@@ -7,6 +7,8 @@
 
 #include "Mesh.h"
 
+#define GAUSS_QUADRAQURE_N 7
+
 PointCloud Mesh::generatePointCloud(int numPoints, bool useNormals)
 {
 	update_normals();
@@ -268,6 +270,23 @@ struct Node
 		return spline(x.x()) * spline(x.y()) * spline(x.z()) / pow(size, 3);
 	}
 
+	// Gradient of base function for FEM
+	Eigen::Vector3d gradBaseFunc(Eigen::Vector3d x)
+	{
+		auto dSpline = [](double t)
+		{
+			if (abs(t) <= 0.5)
+				return -2.0 * t;
+			else if (abs(t) <= 1.5)
+				return -2.0 * (1.5 - abs(t)) * (t > 0 ? 1 : -1);
+			else
+				return 0.0;
+		};
+
+		x = (x - center) / size;
+		return Eigen::Vector3d(dSpline(x.x()), dSpline(x.y()), dSpline(x.z())) / size;
+	}
+
 	// Traverse the octree by depth first
 	void depthFirst(std::function<void(Node &)> callback)
 	{
@@ -280,13 +299,16 @@ struct Node
 	// TODO: Stiffness matrix element
 	double stiffnessMatrixElement(Node &other, Intersection &intersection)
 	{
+		if (!intersection.isIntersecting)
+			return 0.0;
+
 		double element = 0.0;
-		if (intersection.isIntersecting)
-		{
-			// Integrate base function product over the intersection
-			Eigen::Vector3d min = intersection.min;
-			Eigen::Vector3d max = intersection.max;
-		}
+
+		// Integrate base function product over the intersection
+		Eigen::Vector3d min = intersection.min;
+		Eigen::Vector3d max = intersection.max;
+
+		GaussianQuadrature gauss(GAUSS_QUADRAQURE_N);
 
 		return 0;
 	}
@@ -442,13 +464,15 @@ public:
 
 		for (int i = 0; i < n; i++)
 		{
-			for (int j = 0; j < n; j++)
+			for (int j = 0; j <= i; j++)
 			{
-				if (i == j)
+				auto intersection = *leafNodes[i] & *leafNodes[j];
+				if (intersection.isIntersecting)
 				{
-				}
-				else
-				{
+					double element = leafNodes[i]->stiffnessMatrixElement(*leafNodes[j], intersection);
+					L.insert(i, j) = element;
+					if (i != j)
+						L.insert(j, i) = element;
 				}
 			}
 		}
