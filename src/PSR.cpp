@@ -223,6 +223,17 @@ struct Node
 				child.depthFirst(callback);
 	}
 
+	// TODO: Stiffness matrix element
+	double stiffnessMatrixElement(Node &other, Intersection &intersection)
+	{
+		double element = 0.0;
+		if (intersection.isIntersecting)
+		{
+		}
+
+		return 0;
+	}
+
 	// Debug
 	void print()
 	{
