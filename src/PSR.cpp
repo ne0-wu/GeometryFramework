@@ -287,13 +287,11 @@ struct Node
 		return Eigen::Vector3d(dSpline(x.x()), dSpline(x.y()), dSpline(x.z())) / size;
 	}
 
-	// TODO: Stiffness matrix element
+	// Stiffness matrix element
 	double stiffnessMatrixElement(Node &other, Intersection &intersection)
 	{
 		if (!intersection.isIntersecting)
 			return 0.0;
-
-		double element = 0.0;
 
 		// Integrate base function product over the intersection
 		Eigen::Vector3d min = intersection.min;
@@ -301,7 +299,24 @@ struct Node
 
 		GaussianQuadrature gauss(GAUSS_QUADRAQURE_N);
 
-		return 0;
+		auto f = [&](Eigen::Vector3d &x)
+		{
+			return gradBaseFunc(x).dot(other.gradBaseFunc(x));
+		};
+
+		double element = 0.0;
+		for (int i = 0; i < GAUSS_QUADRAQURE_N; i++)
+			for (int j = 0; j < GAUSS_QUADRAQURE_N; j++)
+				for (int k = 0; k < GAUSS_QUADRAQURE_N; k++)
+				{
+					Eigen::Vector3d x = (min + max) + (max - min).cwiseProduct(Eigen::Vector3d(gauss.x[i], gauss.x[j], gauss.x[k]));
+					x /= 2.0;
+					element += gauss.w[i] * gauss.w[j] * gauss.w[k] * f(x);
+				}
+
+		element *= (max.x() - min.x()) * (max.y() - min.y()) * (max.z() - min.z());
+
+		return element;
 	}
 
 	// Traverse the octree by depth first
@@ -449,7 +464,7 @@ struct Octree
 		updateLeafNodes();
 	}
 
-	// TODO: Laplacian matrix
+	// Laplacian matrix
 	Eigen::SparseMatrix<double> laplacianMatrix()
 	{
 		int n = leafNodes.size();
@@ -470,6 +485,8 @@ struct Octree
 				}
 			}
 		}
+
+		return L;
 	}
 
 	// TODO: Indicator function
@@ -551,20 +568,60 @@ void testGaussianQuadrature(int n)
 		 expAccurate);
 }
 
+// #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+
+void spy(Eigen::SparseMatrix<double> matrix)
+{
+	std::vector<unsigned char> image;
+	int width = matrix.cols();
+	int height = matrix.rows();
+	image.resize(width * height);
+
+	double max = 0.0;
+
+	// Traverse through the sparse matrix
+	for (int k = 0; k < matrix.outerSize(); ++k)
+		for (Eigen::SparseMatrix<double>::InnerIterator it(matrix, k); it; ++it)
+		{
+			max = std::max(max, it.value());
+		}
+
+	// Traverse through the sparse matrix
+	for (int k = 0; k < matrix.outerSize(); ++k)
+		for (Eigen::SparseMatrix<double>::InnerIterator it(matrix, k); it; ++it)
+		{
+			int i = it.row();
+			int j = it.col();
+			double value = it.value();
+			// image[i * width + j] = (unsigned char)(value / max * 255);
+			image[i * width + j] = 255;
+		}
+
+	stbi_flip_vertically_on_write(true);
+	stbi_write_png("spy.png", width, height, 1, image.data(), 0);
+}
+
 void testOctree(PointCloud pointCloud)
 {
 
-	for (int n : {1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
-	{
-		testGaussianQuadrature(n);
-	}
+	// for (int n : {1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+	// {
+	// 	testGaussianQuadrature(n);
+	// }
 
-	// Octree tree(pointCloud, Eigen::Vector3d::Zero(), 1.0);
+	Octree tree(pointCloud, Eigen::Vector3d::Zero(), 1.0);
 	// tree.printDepthFirst();
 
-	// tree.refine();
+	tree.refine();
 
 	// tree.printDepthFirst();
 
 	// tree.printBreadthFirst();
+
+	auto L = tree.laplacianMatrix();
+
+	spy(L);
+
+	// std::cout << L << std::endl;
 }
