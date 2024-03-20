@@ -4,6 +4,7 @@
 #include <queue>
 
 #include <Eigen/Sparse>
+#include <Eigen/SparseQR>
 
 #include "Mesh.h"
 
@@ -169,6 +170,21 @@ public:
 	}
 };
 
+struct Intersection
+{
+	bool isIntersecting = false;
+	Eigen::Vector3d min;
+	Eigen::Vector3d max;
+
+	Intersection(Eigen::Vector3d leftCenter, double leftRadius,
+				 Eigen::Vector3d rightCenter, double rightRadius)
+	{
+		min = (leftCenter.array() - leftRadius).cwiseMax(rightCenter.array() - rightRadius);
+		max = (leftCenter.array() + leftRadius).cwiseMin(rightCenter.array() + rightRadius);
+		isIntersecting = (min.array() < max.array()).all();
+	}
+};
+
 struct Node
 {
 	// Node box
@@ -257,28 +273,21 @@ struct Node
 	}
 
 	// Intersection of support of base function of two nodes
-	struct Intersection
-	{
-		bool isIntersecting = false;
-		Eigen::Vector3d min;
-		Eigen::Vector3d max;
-	};
-
 	Intersection operator&(const Node &other)
 	{
-		Intersection intersection;
-		Eigen::Vector3d min = center.array() - size * 1.5;
-		Eigen::Vector3d max = center.array() + size * 1.5;
-		Eigen::Vector3d otherMin = other.center.array() - other.size * 1.5;
-		Eigen::Vector3d otherMax = other.center.array() + other.size * 1.5;
+		// Intersection intersection;
+		// Eigen::Vector3d min = center.array() - size * 1.5;
+		// Eigen::Vector3d max = center.array() + size * 1.5;
+		// Eigen::Vector3d otherMin = other.center.array() - other.size * 1.5;
+		// Eigen::Vector3d otherMax = other.center.array() + other.size * 1.5;
 
-		intersection.min = min.cwiseMax(otherMin);
-		intersection.max = max.cwiseMin(otherMax);
+		// intersection.min = min.cwiseMax(otherMin);
+		// intersection.max = max.cwiseMin(otherMax);
 
-		if ((intersection.min.array() < intersection.max.array()).all())
-			intersection.isIntersecting = true;
+		// if ((intersection.min.array() < intersection.max.array()).all())
+		// 	intersection.isIntersecting = true;
 
-		return intersection;
+		return Intersection(center, size * 1.5, other.center, other.size * 1.5);
 	}
 
 	// Base function for FEM
@@ -349,6 +358,21 @@ struct Node
 		element *= (max.x() - min.x()) * (max.y() - min.y()) * (max.z() - min.z());
 
 		return element;
+	}
+
+	// Divergence of V
+	// V is the smoothed normal field
+	double divV(Eigen::Vector3d q)
+	{
+		double result = 0.0;
+		if (abs((supportCenter - q).array()).maxCoeff() < supportSize)
+			for (int i = 0; i < 8; i++)
+			{
+				auto neighbor = neighbors[i];
+				if (abs((neighbor->supportCenter - q).array()).maxCoeff() < neighbor->supportSize)
+					result += neighborWeights[i] * (neighbor->gradBaseFunc(q).dot(data));
+			}
+		return result;
 	}
 
 	// Traverse the octree by depth first
@@ -585,7 +609,6 @@ struct Octree
 		L.reserve(50 * n);
 
 		for (int i = 0; i < n; i++)
-		{
 			for (int j = 0; j <= i; j++)
 			{
 				auto intersection = *leafNodes[i] & *leafNodes[j];
@@ -597,31 +620,66 @@ struct Octree
 						L.insert(j, i) = element;
 				}
 			}
-		}
 
 		return L;
 	}
 
-	// Divergence of V
-	// V is the smoothed normal field
-	double divV(Eigen::Vector3d q)
-	{
-		double result = 0.0;
-		for (auto &node : nonEmptyLeafNodes)
-			if (abs((node->supportCenter - q).array()).maxCoeff() < node->supportSize)
-				for (int i = 0; i < 8; i++)
-				{
-					auto neighbor = node->neighbors[i];
-					if (abs((neighbor->supportCenter - q).array()).maxCoeff() < neighbor->supportSize)
-						result += node->neighborWeights[i] * (neighbor->gradBaseFunc(q).dot(node->data));
-				}
-		return result;
-	}
+	// // Divergence of V
+	// // V is the smoothed normal field
+	// double divV(Eigen::Vector3d q)
+	// {
+	// 	double result = 0.0;
+	// 	for (auto &node : nonEmptyLeafNodes)
+	// 		if (abs((node->supportCenter - q).array()).maxCoeff() < node->supportSize)
+	// 			for (int i = 0; i < 8; i++)
+	// 			{
+	// 				auto neighbor = node->neighbors[i];
+	// 				if (abs((neighbor->supportCenter - q).array()).maxCoeff() < neighbor->supportSize)
+	// 					result += node->neighborWeights[i] * (neighbor->gradBaseFunc(q).dot(node->data));
+	// 			}
+	// 	return result;
+	// }
 
 	// TODO: Load vector
 	Eigen::SparseVector<double> loadVector()
 	{
 		Eigen::SparseVector<double> b(leafNodes.size());
+
+		for (int i = 0; i < leafNodes.size(); i++)
+		{
+			auto &node = *leafNodes[i];
+
+			// Integrate (base function * divV) over the support of the base function
+			double element = 0.0;
+			for (auto &sample : nonEmptyLeafNodes)
+			{
+				Intersection Intersection(node.center, node.size * 1.5,
+										  sample->supportCenter, sample->supportSize);
+				if (Intersection.isIntersecting)
+				{
+					Eigen::Vector3d min = Intersection.min;
+					Eigen::Vector3d max = Intersection.max;
+
+					GaussianQuadrature gauss(GAUSS_QUADRAQURE_N);
+
+					auto f = [&](Eigen::Vector3d &x)
+					{
+						return node.baseFunc(x) * sample->divV(x);
+					};
+
+					for (int i = 0; i < GAUSS_QUADRAQURE_N; i++)
+						for (int j = 0; j < GAUSS_QUADRAQURE_N; j++)
+							for (int k = 0; k < GAUSS_QUADRAQURE_N; k++)
+							{
+								Eigen::Vector3d x = (min + max) + (max - min).cwiseProduct(Eigen::Vector3d(gauss.x[i], gauss.x[j], gauss.x[k]));
+								x /= 2.0;
+								element += gauss.w[i] * gauss.w[j] * gauss.w[k] * f(x);
+							}
+				}
+			}
+
+			b.insert(i) = element;
+		}
 		return b;
 	}
 
@@ -763,16 +821,19 @@ void testOctree(PointCloud pointCloud)
 
 	tree.refine();
 
-	tree.printBreadthFirst();
-
-	// tree.printDepthFirst();
-
-	// tree.printBreadthFirst();
-
 	auto L = tree.stiffnessMatrix();
+	auto b = tree.loadVector();
 
-	spy(L, "output1.png");
-	spy(L, "output2.png", CONTINUOUS);
+	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
+	solver.compute(L);
+	Eigen::VectorXd x = solver.solve(b);
+
+	// TODO: solve failed
+
+	std::cout << x.transpose() << std::endl;
+
+	// spy(L, "output1.png");
+	// spy(L, "output2.png", CONTINUOUS);
 
 	// std::cout << L << std::endl;
 }
