@@ -63,6 +63,28 @@ PointCloud Mesh::generatePointCloud(int numPoints, bool useNormals)
 	return pointCloud;
 }
 
+/*
+
+		Index of children
+
+		  4-------------------6
+		/ |                 / |
+	  /   |       back    /   |
+	/     |             /     |       z
+  /       |           /       |       |
+5-------------------7         |       O--y
+|         |         |         |      /
+|       front       |         |     x
+|         |         |         |
+|         ０---------|--------2
+|       /           |       /
+|     /             |     /
+|   /               |   /
+| /                 | /
+1-------------------3
+
+*/
+
 int childIndex(Eigen::Vector3d center, Eigen::Vector3d point)
 {
 	int index = 0;
@@ -163,6 +185,7 @@ struct Node
 
 	// Neighbor nodes for trilinear interpolation, size (if not empty) should be 8
 	std::vector<Node *> neighbors;
+	Eigen::Vector<double, 8> neighborWeights;
 
 	// Constructors
 	Node() = default;
@@ -387,6 +410,10 @@ struct Node
 				std::cout << "    ";
 		};
 
+		double sumOfWeights = neighborWeights.sum();
+		indent(depth);
+		std::cout << "  Sum of weights: " << sumOfWeights << std::endl;
+
 		for (auto &neighbor : neighbors)
 		{
 			indent(depth);
@@ -500,6 +527,10 @@ struct Octree
 
 			// Add the neighbor node to the neighbors of the current node
 			node.neighbors.push_back(leaf);
+
+			// Compute and save trilinear weights
+			auto v = (node.data - targetPoint) / (node.size * 2);
+			node.neighborWeights[i] = abs(v.x() * v.y() * v.z());
 		}
 	}
 
