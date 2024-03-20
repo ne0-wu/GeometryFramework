@@ -187,6 +187,10 @@ struct Node
 	std::vector<Node *> neighbors;
 	Eigen::Vector<double, 8> neighborWeights;
 
+	// Support of base function of neighbor functions
+	Eigen::Vector3d supportCenter;
+	double supportSize;
+
 	// Constructors
 	Node() = default;
 
@@ -280,6 +284,8 @@ struct Node
 	// Base function for FEM
 	double baseFunc(Eigen::Vector3d x)
 	{
+		assert(isLeaf());
+
 		auto spline = [](double t)
 		{
 			if (abs(t) <= 0.5)
@@ -297,6 +303,8 @@ struct Node
 	// Gradient of base function for FEM
 	Eigen::Vector3d gradBaseFunc(Eigen::Vector3d x)
 	{
+		assert(isLeaf());
+
 		auto dSpline = [](double t)
 		{
 			if (abs(t) <= 0.5)
@@ -531,6 +539,10 @@ struct Octree
 			// Compute and save trilinear weights
 			auto v = (node.data - targetPoint) / (node.size * 2);
 			node.neighborWeights[i] = abs(v.x() * v.y() * v.z());
+
+			// Support of base function of neighbor functions
+			node.supportCenter = node.center;
+			node.supportSize = node.size * 1.5;
 		}
 	}
 
@@ -588,6 +600,22 @@ struct Octree
 		}
 
 		return L;
+	}
+
+	// Divergence of V
+	// V is the smoothed normal field
+	double divV(Eigen::Vector3d q)
+	{
+		double result = 0.0;
+		for (auto &node : nonEmptyLeafNodes)
+			if (abs((node->supportCenter - q).array()).maxCoeff() < node->supportSize)
+				for (int i = 0; i < 8; i++)
+				{
+					auto neighbor = node->neighbors[i];
+					if (abs((neighbor->supportCenter - q).array()).maxCoeff() < neighbor->supportSize)
+						result += node->neighborWeights[i] * (neighbor->gradBaseFunc(q).dot(node->data));
+				}
+		return result;
 	}
 
 	// TODO: Load vector
