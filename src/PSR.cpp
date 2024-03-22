@@ -621,6 +621,8 @@ struct Octree
 				}
 			}
 
+		L.makeCompressed();
+
 		return L;
 	}
 
@@ -640,7 +642,7 @@ struct Octree
 	// 	return result;
 	// }
 
-	// TODO: Load vector
+	// Load vector
 	Eigen::SparseVector<double> loadVector()
 	{
 		Eigen::SparseVector<double> b(leafNodes.size());
@@ -684,6 +686,14 @@ struct Octree
 	}
 
 	// TODO: Indicator function
+	double indicatorFunction(Eigen::Vector3d q)
+	{
+		double result = 0.0;
+		for (auto &node : nonEmptyLeafNodes)
+			if ((node->center - q).cwiseAbs().maxCoeff() < node->size * 1.5)
+				result += node->baseFunc(q) * x[i];
+		return result;
+	}
 
 	// Debug
 	void printDepthFirst()
@@ -827,8 +837,6 @@ void testOctree(PointCloud pointCloud)
 	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
 	solver.compute(L);
 	Eigen::VectorXd x = solver.solve(b);
-
-	// TODO: solve failed
 
 	std::cout << x.transpose() << std::endl;
 
