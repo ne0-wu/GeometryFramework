@@ -52,6 +52,8 @@ public:
 
 	int numFaces() { return this->n_faces(); }
 
+	int numEdges() { return this->n_edges(); }
+
 	// Render
 	// ------
 	void initializeGLMesh() { glmesh = GLMesh(vertexListFloat(), faceList()); }
@@ -131,6 +133,7 @@ public:
 
 	// Generate point cloud
 	// --------------------
+	PointCloud generatePointCloud();
 	PointCloud generatePointCloud(int numPoints, bool useNormals = false);
 };
 

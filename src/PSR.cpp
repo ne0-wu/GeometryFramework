@@ -2,13 +2,34 @@
 
 #include <random>
 #include <queue>
+#include <fstream>
 
 #include <Eigen/Sparse>
 #include <Eigen/SparseQR>
 
+#define MC_IMPLEM_ENABLE
+#define MC_CPP_USE_DOUBLE_PRECISION
+#include <MC.h>
+
 #include "Mesh.h"
 
 #define GAUSS_QUADRAQURE_N 7
+
+PointCloud Mesh::generatePointCloud()
+{
+	update_normals();
+
+	PointCloud pointCloud;
+	pointCloud.reserve(numVertices());
+
+	for (auto v : vertices())
+	{
+		pointCloud.points.push_back(eigenPoint(v));
+		pointCloud.normals.push_back(eigenNormal(v));
+	}
+
+	return pointCloud;
+}
 
 PointCloud Mesh::generatePointCloud(int numPoints, bool useNormals)
 {
@@ -467,6 +488,8 @@ struct Octree
 	std::vector<Node *> leafNodes;
 	std::vector<Node *> nonEmptyLeafNodes;
 
+	Eigen::VectorXd x;
+
 	void updateMaxDepth()
 	{
 		maxDepth = 0;
@@ -597,6 +620,7 @@ struct Octree
 			refineNeighbors(*node);
 
 		updateLeafNodes();
+		updateNonEmptyLeafNodes();
 	}
 
 	// Stiffness matrix
@@ -689,9 +713,12 @@ struct Octree
 	double indicatorFunction(Eigen::Vector3d q)
 	{
 		double result = 0.0;
-		for (auto &node : nonEmptyLeafNodes)
-			if ((node->center - q).cwiseAbs().maxCoeff() < node->size * 1.5)
-				result += node->baseFunc(q) * x[i];
+		for (int i = 0; i < leafNodes.size(); i++)
+			// if ((leafNodes[i]->center - q).cwiseAbs().maxCoeff() < leafNodes[i]->size * 1.5)
+			if (abs((leafNodes[i]->center - q).x()) < leafNodes[i]->size * 1.5 &&
+				abs((leafNodes[i]->center - q).y()) < leafNodes[i]->size * 1.5 &&
+				abs((leafNodes[i]->center - q).z()) < leafNodes[i]->size * 1.5)
+				result += leafNodes[i]->baseFunc(q) * x[i];
 		return result;
 	}
 
@@ -826,19 +853,66 @@ void testOctree(PointCloud pointCloud)
 	// 	testGaussianQuadrature(n);
 	// }
 
+	std::cout << "Build octree" << std::endl;
 	Octree tree(pointCloud, Eigen::Vector3d::Zero(), 1.0);
 	// tree.printDepthFirst();
 
+	tree.updateLeafNodes();
+	tree.updateNonEmptyLeafNodes();
+	std::cout << "Leaf status: " << tree.leafNodes.size() << " " << tree.nonEmptyLeafNodes.size() << std::endl;
+
+	std::cout << "Refine octree" << std::endl;
 	tree.refine();
 
+	std::cout << "Leaf status: " << tree.leafNodes.size() << " " << tree.nonEmptyLeafNodes.size() << std::endl;
+
+	// tree.printBreadthFirst();
+
+	std::cout << "Calculate stiffness matrix" << std::endl;
 	auto L = tree.stiffnessMatrix();
+	std::cout << "Non-zero elements: " << L.nonZeros() << std::endl;
+
+	std::cout << "Calculate load vector" << std::endl;
 	auto b = tree.loadVector();
 
+	std::cout << "Solve linear system" << std::endl;
 	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
 	solver.compute(L);
-	Eigen::VectorXd x = solver.solve(b);
 
-	std::cout << x.transpose() << std::endl;
+	tree.x = solver.solve(b);
+
+	MC::mcMesh mesh;
+
+	int n = pow(2, tree.maxDepth);
+	double *field = new double[n * n * n];
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+			for (int k = 0; k < n; k++)
+			{
+				Eigen::Vector3d q = (Eigen::Vector3d(i, j, k) / n) * 2 - Eigen::Vector3d::Ones();
+				field[i * n * n + j * n + k] = tree.indicatorFunction(q);
+			}
+
+	MC::marching_cube(field, n, n, n, mesh);
+
+	std::ofstream out;
+	out.open("test.obj");
+	if (out.is_open() == false)
+		return;
+	out << "g "
+		<< "Obj" << std::endl;
+	for (size_t i = 0; i < mesh.vertices.size(); i++)
+		out << "v " << mesh.vertices.at(i).x << " " << mesh.vertices.at(i).y << " " << mesh.vertices.at(i).z << '\n';
+	for (size_t i = 0; i < mesh.vertices.size(); i++)
+		out << "vn " << mesh.normals.at(i).x << " " << mesh.normals.at(i).y << " " << mesh.normals.at(i).z << '\n';
+	for (size_t i = 0; i < mesh.indices.size(); i += 3)
+	{
+		out << "f " << mesh.indices.at(i) + 1 << "//" << mesh.indices.at(i) + 1
+			<< " " << mesh.indices.at(i + 1) + 1 << "//" << mesh.indices.at(i + 1) + 1
+			<< " " << mesh.indices.at(i + 2) + 1 << "//" << mesh.indices.at(i + 2) + 1
+			<< '\n';
+	}
+	out.close();
 
 	// spy(L, "output1.png");
 	// spy(L, "output2.png", CONTINUOUS);

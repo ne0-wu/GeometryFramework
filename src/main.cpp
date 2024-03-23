@@ -17,13 +17,16 @@ int main()
 	// Load mesh and fit into unit ball
 	Mesh mesh("meshes/cathead.obj");
 	mesh.fitIntoUnitBall();
-	mesh.scale(0.9);
 
-	std::cout << mesh.numVertices() << " vertices" << std::endl;
+	std::cout << mesh.numVertices() << " vertices"
+			  << ", " << mesh.numEdges() << " edges"
+			  << ", " << mesh.numFaces() << " faces"
+			  << std::endl;
 
 	// Point cloud test
 
-	PointCloud pointCloud = mesh.generatePointCloud(100, true);
+	// PointCloud pointCloud = mesh.generatePointCloud();
+	PointCloud pointCloud = mesh.generatePointCloud(100);
 
 	std::cout << "Point cloud size: " << pointCloud.points.size() << std::endl;
 	// for (auto p : pointCloud.points)

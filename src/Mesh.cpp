@@ -25,6 +25,7 @@ Mesh::Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int
 
 void Mesh::save(const std::string &filename)
 {
+	garbage_collection();
 	if (!OpenMesh::IO::write_mesh(*this, filename))
 	{
 		std::cerr << "Error saving mesh to file " << filename << std::endl;
