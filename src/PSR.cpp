@@ -715,10 +715,10 @@ struct Octree
 		double result = 0.0;
 		for (int i = 0; i < leafNodes.size(); i++)
 			// if ((leafNodes[i]->center - q).cwiseAbs().maxCoeff() < leafNodes[i]->size * 1.5)
-			if (abs((leafNodes[i]->center - q).x()) < leafNodes[i]->size * 1.5 &&
-				abs((leafNodes[i]->center - q).y()) < leafNodes[i]->size * 1.5 &&
-				abs((leafNodes[i]->center - q).z()) < leafNodes[i]->size * 1.5)
-				result += leafNodes[i]->baseFunc(q) * x[i];
+			// if (abs((leafNodes[i]->center - q).x()) < leafNodes[i]->size * 1.5 &&
+			// 	abs((leafNodes[i]->center - q).y()) < leafNodes[i]->size * 1.5 &&
+			// 	abs((leafNodes[i]->center - q).z()) < leafNodes[i]->size * 1.5)
+			result += leafNodes[i]->baseFunc(q) * x[i];
 		return result;
 	}
 
@@ -879,7 +879,20 @@ void testOctree(PointCloud pointCloud)
 	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
 	solver.compute(L);
 
+	if (solver.info() != Eigen::Success)
+	{
+		// Handle the case when sparse QR decomposition fails.
+		// You can add your own error handling code here.
+		return;
+	}
+
 	tree.x = solver.solve(b);
+
+	if (solver.info() != Eigen::Success)
+	{
+		// Handle the case when the solution process fails.
+		std::cout << "Failed to solve the linear system" << std::endl;
+	}
 
 	MC::mcMesh mesh;
 
