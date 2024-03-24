@@ -15,7 +15,7 @@ int main()
 	// --------------------------------------------------
 
 	// Load mesh and fit into unit ball
-	Mesh mesh("meshes/cathead.obj");
+	Mesh mesh("meshes/spot_simplified.obj");
 	mesh.fitIntoUnitBall();
 
 	std::cout << mesh.numVertices() << " vertices"
@@ -25,8 +25,8 @@ int main()
 
 	// Point cloud test
 
-	// PointCloud pointCloud = mesh.generatePointCloud();
-	PointCloud pointCloud = mesh.generatePointCloud(100);
+	PointCloud pointCloud = mesh.generatePointCloud();
+	// PointCloud pointCloud = mesh.generatePointCloud(50, true);
 
 	std::cout << "Point cloud size: " << pointCloud.points.size() << std::endl;
 	// for (auto p : pointCloud.points)
