@@ -626,7 +626,8 @@ struct Octree
 		};
 		auto calculateIndicatorFunc = [&](Node &node)
 		{
-			result += node.baseFunc(q);
+			if (node.isLeaf() && !node.isEmpty())
+				result += node.baseFunc(q) * x[node.leafIndex];
 		};
 
 		depthFirst(calculateIndicatorFunc, isInSupport);
