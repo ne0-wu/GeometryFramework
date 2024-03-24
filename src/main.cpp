@@ -5,6 +5,8 @@
 #include "Scene.h"
 #include "Mesh.h"
 
+#include "GeometryProcessing.h"
+
 int main()
 {
 	std::filesystem::path currentPath = std::filesystem::current_path();
@@ -23,22 +25,11 @@ int main()
 			  << ", " << mesh.numFaces() << " faces"
 			  << std::endl;
 
-	// Point cloud test
+	PointCloud pointCloud(mesh);
 
-	PointCloud pointCloud = mesh.generatePointCloud();
-	// PointCloud pointCloud = mesh.generatePointCloud(50, true);
+	std::cout << "Point cloud size: " << pointCloud.data.size() << std::endl;
 
-	std::cout << "Point cloud size: " << pointCloud.points.size() << std::endl;
-	// for (auto p : pointCloud.points)
-	// {
-	// 	std::cout << p << std::endl;
-	// }
-	// for (auto n : pointCloud.normals)
-	// {
-	// 	std::cout << n << std::endl;
-	// }
-
-	testOctree(pointCloud);
+	PoissonSurfaceReconstruction(pointCloud);
 
 	// --------------------------------------------------
 

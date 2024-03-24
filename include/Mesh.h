@@ -10,17 +10,17 @@
 
 #include "GLMesh.h"
 
-struct PointCloud
-{
-	std::vector<Eigen::Vector3d> points;
-	std::vector<Eigen::Vector3d> normals;
+// struct PointCloud
+// {
+// 	std::vector<Eigen::Vector3d> points;
+// 	std::vector<Eigen::Vector3d> normals;
 
-	void reserve(int numPoints)
-	{
-		points.reserve(numPoints);
-		normals.reserve(numPoints);
-	}
-};
+// 	void reserve(int numPoints)
+// 	{
+// 		points.reserve(numPoints);
+// 		normals.reserve(numPoints);
+// 	}
+// };
 
 struct MyTraits : public OpenMesh::DefaultTraits
 {
@@ -131,11 +131,8 @@ public:
 	std::pair<double, Point> optimalPlacement(HalfedgeHandle edge, const Eigen::Matrix4d &Q);
 	void collapseEdge(HalfedgeHandle edge, Point contractedPosition);
 
-	// Generate point cloud
-	// --------------------
-	PointCloud generatePointCloud();
-	PointCloud generatePointCloud(int numPoints, bool useNormals = false);
+	// // Generate point cloud
+	// // --------------------
+	// PointCloud generatePointCloud();
+	// PointCloud generatePointCloud(int numPoints, bool useNormals = true);
 };
-
-// debug
-void testOctree(PointCloud pointCloud);
