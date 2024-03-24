@@ -7,6 +7,8 @@
 #include <Eigen/Sparse>
 #include <Eigen/SparseQR>
 
+#include <Eigen/IterativeLinearSolvers>
+
 #define MC_IMPLEM_ENABLE
 #define MC_CPP_USE_DOUBLE_PRECISION
 #include <MC.h>
@@ -543,23 +545,11 @@ struct Octree
 			{
 				if (node.isLeaf())
 				{
-					double element = leafNodes[i]->stiffnessMatrixElement(node, *leafNodes[i] & node);
-					L.insert(i, node.leafIndex) = element;
+					// double element = leafNodes[i]->stiffnessMatrixElement(node, *leafNodes[i] & node);
+					L.insert(i, node.leafIndex) = leafNodes[i]->stiffnessMatrixElement(node, *leafNodes[i] & node);
 				}
 			};
 			depthFirst(calculateElement, supportOverlap);
-
-			// for (int j = 0; j <= i; j++)
-			// {
-			// 	auto intersection = *leafNodes[i] & *leafNodes[j];
-			// 	if (intersection.isIntersecting)
-			// 	{
-			// 		double element = leafNodes[i]->stiffnessMatrixElement(*leafNodes[j], intersection);
-			// 		L.insert(i, j) = element;
-			// 		if (i != j)
-			// 			L.insert(j, i) = element;
-			// 	}
-			// }
 		}
 
 		L.makeCompressed();
@@ -626,7 +616,7 @@ struct Octree
 		};
 		auto calculateIndicatorFunc = [&](Node &node)
 		{
-			if (node.isLeaf() && !node.isEmpty())
+			if (node.isLeaf())
 				result += node.baseFunc(q) * x[node.leafIndex];
 		};
 
@@ -722,7 +712,11 @@ void PoissonSurfaceReconstruction(PointCloud pointCloud)
 	auto b = tree.loadVector();
 
 	std::cout << "Solve linear system" << std::endl;
-	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
+
+	// Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
+	// solver.compute(L);
+
+	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteCholesky<double>> solver;
 	solver.compute(L);
 
 	tree.x = solver.solve(b);
