@@ -750,7 +750,7 @@ void PoissonSurfaceReconstruction(PointCloud pointCloud)
 
 	// Output mesh to file
 	std::ofstream out;
-	out.open("test.obj");
+	out.open("output.obj");
 	if (out.is_open() == false)
 		return;
 	out << "g "
@@ -768,5 +768,5 @@ void PoissonSurfaceReconstruction(PointCloud pointCloud)
 	}
 	out.close();
 
-	std::cout << "Output mesh to test.obj" << std::endl;
+	std::cout << "Output mesh to output.obj" << std::endl;
 }

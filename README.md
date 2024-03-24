@@ -19,5 +19,9 @@ This project has been tested on Windows 10 with Visual Studio 2022. It should wo
 - `WASD` to move the camera.
 - `Up` and `Down` arrow keys to zoom in and out.
 - `R` to reset the camera.
--  `Q` to simplify the mesh with QEM. The target is to reduce 10% of the vertices each time.
 -  `Control+S` to save the current frame as a PNG image.
+ 
+## About homeworks
+
+- **Homework 1** Press `Q` to simplify the mesh with QEM. The target is to reduce 10% of the vertices each time.
+- **Homework 2** No user interface has been implemented. The program will automatically open 'meshes/spot_simplified.obj', sample a point cloud on it and reconstruct the mesh using Poisson reconstruction. The result will be saved as 'output.obj' in 'build/HelloOpenGL/{Release or Debug or ...}'.
