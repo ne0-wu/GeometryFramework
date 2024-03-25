@@ -33,14 +33,14 @@ public:
         case SAMPLE_TYPE::SAMPLE_ON_VERTICES:
             data.reserve(mesh.numVertices());
             for (auto v : mesh.vertices())
-                data.push_back(PointCloudData(mesh.eigenPoint(v), mesh.eigenNormal(v)));
+                data.push_back(PointCloudData(mesh.point(v), mesh.normal(v)));
             break;
         case SAMPLE_TYPE::SAMPLE_ON_FACES:
             data.reserve(mesh.numFaces());
             for (auto f : mesh.faces())
             {
                 for (auto v : mesh.fv_range(f))
-                    data.push_back(PointCloudData(mesh.eigenPoint(v), mesh.eigenNormal(f)));
+                    data.push_back(PointCloudData(mesh.point(v), mesh.normal(f)));
             }
             break;
         }
@@ -73,12 +73,12 @@ public:
             double w = 1 - u - v;
 
             auto v_it = mesh.fv_iter(f);
-            Eigen::Vector3d p0 = mesh.eigenPoint(v_it);
-            Eigen::Vector3d n0 = mesh.eigenNormal(v_it++);
-            Eigen::Vector3d p1 = mesh.eigenPoint(v_it);
-            Eigen::Vector3d n1 = mesh.eigenNormal(v_it++);
-            Eigen::Vector3d p2 = mesh.eigenPoint(v_it);
-            Eigen::Vector3d n2 = mesh.eigenNormal(v_it);
+            Eigen::Vector3d p0 = mesh.point(v_it);
+            Eigen::Vector3d n0 = mesh.normal(v_it++);
+            Eigen::Vector3d p1 = mesh.point(v_it);
+            Eigen::Vector3d n1 = mesh.normal(v_it++);
+            Eigen::Vector3d p2 = mesh.point(v_it);
+            Eigen::Vector3d n2 = mesh.normal(v_it);
 
             Eigen::Vector3d point = u * p0 + v * p1 + w * p2;
             Eigen::Vector3d normal = u * n0 + v * n1 + w * n2;

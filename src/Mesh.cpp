@@ -25,7 +25,6 @@ Mesh::Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int
 
 void Mesh::save(const std::string &filename)
 {
-	garbage_collection();
 	if (!OpenMesh::IO::write_mesh(*this, filename))
 	{
 		std::cerr << "Error saving mesh to file " << filename << std::endl;
@@ -145,8 +144,14 @@ void Mesh::resize(Mesh::Point min, Mesh::Point max)
 	Mesh::Point destCenter = (min + max) / 2, currCenter = this->center();
 	auto destScale = max - destCenter;
 	auto currScale = this->center() - currCenter;
-	std::for_each(vertices_begin(), vertices_end(), [&](Mesh::VertexHandle v_it)
-				  { set_point(v_it, (point(v_it) - currCenter) * destScale / currScale + destCenter); });
+	// std::for_each(vertices_begin(), vertices_end(), [&](Mesh::VertexHandle v_it)
+	// 			  { set_point(v_it, (point(v_it) - currCenter) * destScale / currScale + destCenter); });
+	for (auto &v : vertices())
+	{
+		auto p = point(v);
+		p = (p - currCenter).cwiseProduct(destScale.cwiseInverse().cwiseProduct(currScale)) + destCenter;
+		set_point(v, p);
+	}
 }
 
 void Mesh::resize(double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
@@ -158,7 +163,7 @@ void Mesh::fitInto(Mesh::Point min, Mesh::Point max)
 {
 	Mesh::Point destCenter = (min + max) / 2, currCenter = center(),
 				destScale = max - destCenter, currScale = boundingBoxMax() - center();
-	double scaler = (destScale / currScale).min();
+	double scaler = (destScale.array() / currScale.array()).minCoeff();
 	std::for_each(vertices_begin(), vertices_end(), [&](Mesh::VertexHandle v_it)
 				  { set_point(v_it, (point(v_it) - currCenter) * scaler + destCenter); });
 }

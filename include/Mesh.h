@@ -5,27 +5,18 @@
 #include <vector>
 
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Geometry/EigenVectorT.hh>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
 #include "GLMesh.h"
 
-// struct PointCloud
-// {
-// 	std::vector<Eigen::Vector3d> points;
-// 	std::vector<Eigen::Vector3d> normals;
-
-// 	void reserve(int numPoints)
-// 	{
-// 		points.reserve(numPoints);
-// 		normals.reserve(numPoints);
-// 	}
-// };
-
 struct MyTraits : public OpenMesh::DefaultTraits
 {
-	typedef OpenMesh::Vec3d Point;
-	typedef OpenMesh::Vec3d Normal;
+	typedef Eigen::Vector3d Point;
+	typedef Eigen::Vector3d Normal;
+	typedef Eigen::Vector2d TexCoord2D;
 
 	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
 	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
@@ -84,20 +75,6 @@ public:
 
 	// Geometry information
 	// --------------------
-	Eigen::Vector3d eigenPoint(VertexHandle v)
-	{
-		return Eigen::Vector3d(point(v)[0], point(v)[1], point(v)[2]);
-	}
-
-	Eigen::Vector3d eigenNormal(VertexHandle v)
-	{
-		return Eigen::Vector3d(normal(v)[0], normal(v)[1], normal(v)[2]);
-	}
-
-	Eigen::Vector3d eigenNormal(FaceHandle f)
-	{
-		return Eigen::Vector3d(normal(f)[0], normal(f)[1], normal(f)[2]).normalized();
-	}
 
 	Point boundingBoxMin();
 	Point boundingBoxMax();
@@ -130,9 +107,4 @@ public:
 	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
 	std::pair<double, Point> optimalPlacement(HalfedgeHandle edge, const Eigen::Matrix4d &Q);
 	void collapseEdge(HalfedgeHandle edge, Point contractedPosition);
-
-	// // Generate point cloud
-	// // --------------------
-	// PointCloud generatePointCloud();
-	// PointCloud generatePointCloud(int numPoints, bool useNormals = true);
 };

@@ -19,15 +19,16 @@ void Mesh::collapseEdge(Mesh::HalfedgeHandle edge, Point contractedPosition)
 Eigen::Matrix4d Mesh::quadricErrorMatrix(VertexHandle v)
 {
 	Eigen::Matrix4d Q = Eigen::Matrix4d::Zero();
-	Eigen::Vector3d p = eigenPoint(v);
+	Eigen::Vector3d p = point(v);
 
-	for (auto vf_it = vf_begin(v); vf_it != vf_end(v); ++vf_it)
+	for (auto f : vf_range(v))
 	{
-		Eigen::Vector3d normal = eigenNormal(vf_it);
+		auto normal = this->normal(f);
 		double d = (normal.transpose() * p).value();
 		Eigen::Vector4d plane(normal.x(), normal.y(), normal.z(), -d);
 		Q += plane * plane.transpose();
 	}
+
 	return Q;
 }
 
@@ -38,7 +39,7 @@ OptimalPlacement Mesh::optimalPlacement(HalfedgeHandle edge, const Eigen::Matrix
 	A.block<1, 3>(3, 0) = Eigen::Vector3d(0, 0, 0).transpose();
 	A(3, 3) = 1;
 
-	Eigen::Vector3d midPoint = (eigenPoint(to_vertex_handle(edge)) + eigenPoint(from_vertex_handle(edge))) / 2;
+	Eigen::Vector3d midPoint = (point(to_vertex_handle(edge)) + point(from_vertex_handle(edge))) / 2;
 	Eigen::Vector4d midPointHomo(midPoint.x(), midPoint.y(), midPoint.z(), 1);
 	double errorMid = (midPointHomo.transpose() * Q * midPointHomo).value();
 
