@@ -1,4 +1,6 @@
 #include "Mesh.h"
 #include "PointCloud.h"
 
-void PoissonSurfaceReconstruction(PointCloud pointCloud);
+void poissonSurfaceReconstruction(PointCloud &pointCloud);
+
+void localGlobalParameterization(Mesh &mesh);

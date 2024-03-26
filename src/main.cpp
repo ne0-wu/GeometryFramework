@@ -20,16 +20,16 @@ int main()
 	Mesh mesh("meshes/spot_simplified.obj");
 	mesh.fitIntoUnitBall();
 
-	// std::cout << mesh.numVertices() << " vertices"
-	// 		  << ", " << mesh.numEdges() << " edges"
-	// 		  << ", " << mesh.numFaces() << " faces"
-	// 		  << std::endl;
+	std::cout << mesh.numVertices() << " vertices"
+			  << ", " << mesh.numEdges() << " edges"
+			  << ", " << mesh.numFaces() << " faces"
+			  << std::endl;
 
-	// PointCloud pointCloud(mesh);
+	PointCloud pointCloud(mesh);
 
-	// std::cout << "Point cloud size: " << pointCloud.data.size() << std::endl;
+	std::cout << "Point cloud size: " << pointCloud.data.size() << std::endl;
 
-	// PoissonSurfaceReconstruction(pointCloud);
+	// poissonSurfaceReconstruction(pointCloud);
 
 	// --------------------------------------------------
 

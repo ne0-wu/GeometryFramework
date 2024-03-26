@@ -39,11 +39,11 @@ public:
 	std::vector<float> vertexListFloat();
 	const std::vector<unsigned int> faceList();
 
-	int numVertices() { return this->n_vertices(); }
+	int numVertices() const { return this->n_vertices(); }
 
-	int numFaces() { return this->n_faces(); }
+	int numFaces() const { return this->n_faces(); }
 
-	int numEdges() { return this->n_edges(); }
+	int numEdges() const { return this->n_edges(); }
 
 	// Render
 	// ------

@@ -49,6 +49,7 @@ include_directories(3rdparty/include)
 
 # Find source files
 aux_source_directory(src SOURCE_FILES)
+aux_source_directory(src/GeometryProcessing SOURCE_FILES)
 aux_source_directory(3rdparty/src SOURCE_FILES)
 
 # Find header files

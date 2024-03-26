@@ -11,13 +11,11 @@
 
 #define MC_IMPLEM_ENABLE
 #define MC_CPP_USE_DOUBLE_PRECISION
-#include <MC.h>
+#include <MarchingCube/MC.h>
 
 #include "GeometryProcessing.h"
 
 // Utils
-
-#define GAUSS_QUADRAQURE_N 7
 
 class GaussianQuadrature
 {
@@ -307,16 +305,12 @@ struct Node
 		Eigen::Vector3d min = intersection.min;
 		Eigen::Vector3d max = intersection.max;
 
-		GaussianQuadrature gauss(GAUSS_QUADRAQURE_N);
-
 		auto f = [&](const Eigen::Vector3d &x)
 		{
 			return gradBaseFunc(x).dot(other.gradBaseFunc(x));
 		};
 
-		// integrate3D(min, max, f, gauss);
-
-		return integrate3D(min, max, f, gauss);
+		return integrate3D(min, max, f);
 	}
 
 	// Divergence of V
@@ -578,26 +572,13 @@ struct Octree
 					Eigen::Vector3d min = Intersection.min;
 					Eigen::Vector3d max = Intersection.max;
 
-					GaussianQuadrature gauss(GAUSS_QUADRAQURE_N);
-
-					auto f = [&](Eigen::Vector3d &x)
+					auto f = [&](const Eigen::Vector3d &x)
 					{
 						return node.baseFunc(x) * sample->divV(x);
 					};
 
-					for (int i = 0; i < GAUSS_QUADRAQURE_N; i++)
-						for (int j = 0; j < GAUSS_QUADRAQURE_N; j++)
-							for (int k = 0; k < GAUSS_QUADRAQURE_N; k++)
-							{
-								Eigen::Vector3d x = (min + max) + (max - min).cwiseProduct(Eigen::Vector3d(gauss.x[i], gauss.x[j], gauss.x[k]));
-								x /= 2.0;
-								element2 += gauss.w[i] * gauss.w[j] * gauss.w[k] * f(x);
-							}
-
-					element2 *= (max - min).prod() / 8.0;
+					element += integrate3D(min, max, f);
 				}
-
-				element += element2;
 			}
 
 			b.insert(i) = element;
@@ -687,7 +668,7 @@ private:
 	}
 };
 
-void PoissonSurfaceReconstruction(PointCloud pointCloud)
+void poissonSurfaceReconstruction(PointCloud &pointCloud)
 {
 	// Build and refine octree
 	std::cout << "Build octree" << std::endl;
@@ -714,8 +695,6 @@ void PoissonSurfaceReconstruction(PointCloud pointCloud)
 	std::cout << "Solve linear system" << std::endl;
 
 	// Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
-	// solver.compute(L);
-
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteCholesky<double>> solver;
 	solver.compute(L);
 
