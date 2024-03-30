@@ -1,17 +1,21 @@
 // This file implements the Local-Global Parameterization algorithm.
 
+#include <algorithm>
+
 #include <Eigen/Sparse>
+#include <Eigen/SparseQR>
+#include <Eigen/SparseLU>
 
 #include "GeometryProcessing.h"
+
+struct Triplet : public Eigen::Triplet<double>
+{
+	Triplet(int i, int j, double v) : Eigen::Triplet<double>(i, j, v) {}
+};
 
 Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 {
 	int numVertices = mesh.numVertices();
-
-	struct Triplet : public Eigen::Triplet<double>
-	{
-		Triplet(int i, int j, double v) : Eigen::Triplet<double>(i, j, v) {}
-	};
 
 	std::vector<Triplet> triplets;
 	triplets.reserve(numVertices * 7);
@@ -42,9 +46,11 @@ Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 			auto vj = mesh.to_vertex_handle(voh);
 			int j = vj.idx();
 
-			double cotAlpha = 1.0 / tan(oppositeAngle(voh));
-			double cotBeta = 0.0;
-			if (mesh.opposite_halfedge_handle(voh).is_valid())
+			double cotAlpha = 0.0, cotBeta = 0.0;
+			if (voh.is_valid() && !mesh.is_boundary(voh))
+				cotAlpha = 1.0 / tan(oppositeAngle(voh));
+
+			if (mesh.opposite_halfedge_handle(voh).is_valid() && !mesh.opposite_halfedge_handle(voh).is_boundary())
 				cotBeta = 1.0 / tan(oppositeAngle(mesh.opposite_halfedge_handle(voh)));
 
 			triplets.push_back(Triplet(i, j, cotAlpha + cotBeta));
@@ -129,28 +135,51 @@ Eigen::Matrix2d bestFitASAP(Eigen::Matrix2d &J)
 	return svd.U * S * svd.V.transpose();
 }
 
+// Tutte Parameterization with given laplacian matrix
 Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<double> laplacian)
 {
 	int numVertices = mesh.numVertices();
+	std::vector<int> boundary = boundaryVertices(mesh);
 
-	Eigen::MatrixX2d X(numVertices, 2);
-	X.setZero();
-
-	for (int bdrIdx : boundaryVertices(mesh))
+	// Fix the boundary vertices to the unit circle
+	Eigen::MatrixX2d b(numVertices + boundary.size(), 2);
+	b.setZero();
+	for (int i = 0; i < boundary.size(); i++)
 	{
-		X(bdrIdx, 0) = mesh.point(Mesh::VertexHandle(bdrIdx)).x();
-		X(bdrIdx, 1) = mesh.point(Mesh::VertexHandle(bdrIdx)).y();
+		b(numVertices + i, 0) = cos(2 * M_PI * i / boundary.size());
+		b(numVertices + i, 1) = sin(2 * M_PI * i / boundary.size());
 	}
 
-	Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
-	solver.compute(laplacian);
+	// Construct the matrix A for the linear system Ax = b
+	// Start by extracting triplets from the laplacian matrix
+	std::vector<Triplet> triplets;
+	triplets.reserve(laplacian.nonZeros());
 
-	X = solver.solve(X);
+	for (int k = 0; k < laplacian.outerSize(); ++k)
+		for (Eigen::SparseMatrix<double>::InnerIterator it(laplacian, k); it; ++it)
+		{
+			// Skip the rows of boundary vertices
+			if (std::find(boundary.begin(), boundary.end(), it.row()) != boundary.end())
+				continue;
 
-	return X;
+			// Add the triplet to the list
+			triplets.push_back(Triplet(it.row(), it.col(), it.value()));
+		}
+
+	// Add the boundary constraints
+	for (int i = 0; i < boundary.size(); i++)
+		triplets.push_back(Triplet(numVertices + i, boundary[i], 1.0));
+
+	// Construct the sparse matrix A
+	Eigen::SparseMatrix<double> A(numVertices + boundary.size(), numVertices);
+	A.setFromTriplets(triplets.begin(), triplets.end());
+
+	// Solve the linear system
+	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> qr(A);
+	return qr.solve(b);
 }
 
-Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 5)
+Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 {
 	Eigen::SparseMatrix<double> laplacian = cotLaplacian(mesh);
 
@@ -201,7 +230,7 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 5)
 
 			Eigen::Matrix2d triangleUU = R * triangleXs[f.idx()];
 
-			rhs.block<1, 2>(v0.idx(), 0) +=
+			// rhs.block<1, 2>(v0.idx(), 0) +=
 		}
 
 		// Global step

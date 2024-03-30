@@ -17,7 +17,7 @@ int main()
 	// --------------------------------------------------
 
 	// Load mesh and fit into unit ball
-	Mesh mesh("meshes/spot_simplified.obj");
+	Mesh mesh("meshes/cathead.obj");
 	mesh.fitIntoUnitBall();
 
 	std::cout << mesh.numVertices() << " vertices"
@@ -25,16 +25,34 @@ int main()
 			  << ", " << mesh.numFaces() << " faces"
 			  << std::endl;
 
-	PointCloud pointCloud(mesh);
+	Eigen::MatrixX2d tutte = localGlobalParameterization(mesh, 0);
 
-	std::cout << "Point cloud size: " << pointCloud.data.size() << std::endl;
+	std::cout << tutte << std::endl;
 
+	std::vector<double> paraResult(mesh.numVertices() * 3);
+	for (int i = 0; i < mesh.numVertices(); i++)
+	{
+		paraResult[3 * i] = tutte(i, 0);
+		paraResult[3 * i + 1] = tutte(i, 1);
+		paraResult[3 * i + 2] = 0;
+	}
+
+	Mesh tutteTest(paraResult, mesh.faceList());
+
+	tutteTest.fitIntoUnitBall();
+
+	tutteTest.move(Eigen::Vector3d(0, 0, -1));
+
+	// PointCloud pointCloud(mesh);
+	// std::cout << "Point cloud size: " << pointCloud.data.size() << std::endl;
 	// poissonSurfaceReconstruction(pointCloud);
 
 	// --------------------------------------------------
 
 	// Add the mesh to the scene
-	scene.addMesh(mesh);
+	// scene.addMesh(mesh);
+
+	scene.addMesh(tutteTest);
 
 	// --------------------------------------------------
 

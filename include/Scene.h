@@ -22,8 +22,8 @@ enum controlType
 
 struct Camera
 {
-	Eigen::Vector3f position = Eigen::Vector3f(1.5, -1.5, 0);
-	Eigen::Vector3f direction = Eigen::Vector3f(-1, 1, 0).normalized();
+	Eigen::Vector3f position = Eigen::Vector3f(2, 0, 0);
+	Eigen::Vector3f direction = Eigen::Vector3f(-1, 0, 0).normalized();
 	Eigen::Vector3f up = Eigen::Vector3f(0, 0, 1); // opposite to gravity direction
 	float fovY = 45.0f;
 	float near = 0.1f;
