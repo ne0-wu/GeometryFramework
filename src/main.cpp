@@ -41,7 +41,7 @@ int main()
 
 	tutteTest.fitIntoUnitBall();
 
-	tutteTest.move(Eigen::Vector3d(0, 0, -1));
+	// tutteTest.move(Eigen::Vector3d(0, 0, -1));
 
 	// PointCloud pointCloud(mesh);
 	// std::cout << "Point cloud size: " << pointCloud.data.size() << std::endl;

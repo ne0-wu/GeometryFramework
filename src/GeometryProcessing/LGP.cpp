@@ -186,6 +186,7 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 	// Initial guess
 	Eigen::MatrixX2d X = tutteParameterization(mesh, laplacian);
 
+	// Directly flattern the faces to the 2D plane
 	std::vector<Eigen::Matrix2d> triangleXs(mesh.numFaces());
 	for (auto f : mesh.faces())
 	{
@@ -225,7 +226,6 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 				X(v1.idx(), 1) - X(v0.idx(), 1), X(v2.idx(), 1) - X(v0.idx(), 1);
 
 			Eigen::Matrix2d J = triangleU * triangleXs[f.idx()].inverse();
-
 			Eigen::Matrix2d R = bestFitARAP(J);
 
 			Eigen::Matrix2d triangleUU = R * triangleXs[f.idx()];
@@ -235,4 +235,6 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 
 		// Global step
 	}
+
+	return X;
 }
