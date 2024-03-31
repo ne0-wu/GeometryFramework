@@ -1,12 +1,15 @@
 // This file implements the Local-Global Parameterization algorithm.
 
-#include <algorithm>
+// #include <algorithm>
+#include <chrono>
 
 #include <Eigen/Sparse>
-#include <Eigen/SparseQR>
-#include <Eigen/SparseLU>
+// #include <Eigen/SparseCholesky>
+// #include <Eigen/SparseQR>
+// #include <Eigen/IterativeLinearSolvers>
 
 #include "GeometryProcessing.h"
+#include "Utils/TickTock.h"
 
 struct Triplet : public Eigen::Triplet<double>
 {
@@ -188,17 +191,30 @@ Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<dou
 	A.setFromTriplets(triplets.begin(), triplets.end());
 
 	// Solve the linear system
-	Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> qr(A);
-	return qr.solve(b);
+	// Eigen::SimplicialLDLT solver(A);
+	// Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
+	// solver.compute(A);
+
+	Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double>> solver;
+	solver.compute(A);
+
+	return solver.solve(b);
 }
 
 Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 {
+	TickTock ttTutte("Tutte Parameterization");
+	// Compute the cotangent Laplacian matrix
 	Eigen::SparseMatrix<double> laplacian = cotLaplacian(mesh);
-	Eigen::SimplicialLDLT solver(laplacian);
 
 	// Initial guess
 	Eigen::MatrixX2d U = tutteParameterization(mesh, laplacian);
+
+	ttTutte.tock();
+
+	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteCholesky<double>> solver;
+	solver.setTolerance(1e-5);
+	solver.compute(laplacian);
 
 	// Directly flattern the faces to the 2D plane
 	std::vector<Eigen::Matrix2d> triangleXs(mesh.numFaces());
@@ -232,12 +248,19 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 		cotWeights[heh.idx()] = 1.0 / tan(oppositeAngle(mesh, heh));
 	}
 
-	for (int iter = 0; iter < numIter; iter++)
+	TickTock ttLG("Local-Global Iteration");
+
+	for (int iter = 1; iter <= numIter; iter++)
 	{
+		std::cout << "Iteration " << iter << std::endl;
+
+		ttLG.tick();
+
 		// Local step
 		Eigen::MatrixX2d rhs(mesh.numVertices(), 2);
 		rhs.setZero();
 
+		TickTock ttLocal("Local Step");
 		for (auto f : mesh.faces())
 		{
 			// Get the 2D triangle in the UV plane, from the last iteration
@@ -246,9 +269,7 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 				 v1 = mesh.to_vertex_handle(heh01),
 				 v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh01));
 
-			Eigen::Vector2d u0 = U.row(v0.idx()),
-							u1 = U.row(v1.idx()),
-							u2 = U.row(v2.idx());
+			Eigen::Vector2d u0 = U.row(v0.idx()), u1 = U.row(v1.idx()), u2 = U.row(v2.idx());
 
 			auto e01 = u1 - u0, e02 = u2 - u0;
 
@@ -259,7 +280,8 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 			// Compute the best fit rotation from the Jacobi matrix
 			// x and u are row vectors, so x * J == u, J = x^-1 * u
 			Eigen::Matrix2d J = triangleXs[f.idx()].inverse() * triangleU;
-			Eigen::Matrix2d R = bestFitARAP(J);
+			// Eigen::Matrix2d R = bestFitARAP(J);
+			Eigen::Matrix2d R = bestFitASAP(J);
 
 			// Compute the right hand side of the linear system
 			Eigen::Matrix<double, 1, 2> x0, x1, x2;
@@ -274,9 +296,12 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 			rhs.block<1, 2>(v1.idx(), 0) += cotWeights[heh12.idx()] * ((x1 - x2) * R) + cotWeights[heh01.idx()] * ((x1 - x0) * R);
 			rhs.block<1, 2>(v2.idx(), 0) += cotWeights[heh20.idx()] * ((x2 - x0) * R) + cotWeights[heh12.idx()] * ((x2 - x1) * R);
 		}
+		ttLocal.tock();
 
 		// Global step
 		U = solver.solve(rhs);
+
+		ttLG.tock();
 	}
 
 	return U;

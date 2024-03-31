@@ -17,7 +17,7 @@ int main()
 	// --------------------------------------------------
 
 	// Load mesh and fit into unit ball
-	Mesh mesh("meshes/cathead.obj");
+	Mesh mesh("meshes/camelhead.obj");
 	mesh.fitIntoUnitBall();
 
 	std::cout << mesh.numVertices() << " vertices"
@@ -25,15 +25,13 @@ int main()
 			  << ", " << mesh.numFaces() << " faces"
 			  << std::endl;
 
-	Eigen::MatrixX2d tutte = localGlobalParameterization(mesh, 100);
-
-	std::cout << tutte << std::endl;
+	Eigen::MatrixX2d result = localGlobalParameterization(mesh, 100);
 
 	std::vector<double> paraResult(mesh.numVertices() * 3);
 	for (int i = 0; i < mesh.numVertices(); i++)
 	{
-		paraResult[3 * i] = tutte(i, 0);
-		paraResult[3 * i + 1] = tutte(i, 1);
+		paraResult[3 * i] = result(i, 0);
+		paraResult[3 * i + 1] = result(i, 1);
 		paraResult[3 * i + 2] = 0;
 	}
 

@@ -3,4 +3,4 @@
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);
 
-Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 5);
+Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 100);

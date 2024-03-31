@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(HelloOpenGL)
 
+find_package(OpenMP)
+
 # Find the OpenGL package
 find_package(OpenGL)
 
@@ -61,6 +63,7 @@ add_executable(HelloOpenGL ${SOURCE_FILES} ${HEADER_FILES})
 # Link the libraries
 target_link_libraries(HelloOpenGL
 	${OPENGL_LIBRARIES}  # OpenGL libraries
+	OpenMP::OpenMP_CXX
 	glfw                 # GLFW library for creating windows, contexts and surfaces, receiving input and events
 	OpenMeshCore         # Core OpenMesh library
 	OpenMeshTools        # Tools provided by OpenMesh

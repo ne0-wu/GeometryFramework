@@ -6,7 +6,6 @@
 
 #include <Eigen/Sparse>
 #include <Eigen/SparseQR>
-
 #include <Eigen/IterativeLinearSolvers>
 
 #define MC_IMPLEM_ENABLE
