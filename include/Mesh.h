@@ -45,6 +45,8 @@ public:
 
 	int numEdges() const { return this->n_edges(); }
 
+	int numHalfEdges() const { return this->n_halfedges(); }
+
 	// Render
 	// ------
 	void initializeGLMesh() { glmesh = GLMesh(vertexListFloat(), faceList()); }

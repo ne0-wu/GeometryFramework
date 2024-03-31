@@ -13,6 +13,22 @@ struct Triplet : public Eigen::Triplet<double>
 	Triplet(int i, int j, double v) : Eigen::Triplet<double>(i, j, v) {}
 };
 
+double oppositeAngle(const Mesh &mesh, Mesh::HalfedgeHandle heh)
+{
+	auto v0 = mesh.from_vertex_handle(heh);
+	auto v1 = mesh.to_vertex_handle(heh);
+	auto v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
+
+	auto p0 = mesh.point(v0);
+	auto p1 = mesh.point(v1);
+	auto p2 = mesh.point(v2);
+
+	auto e0 = p1 - p2;
+	auto e1 = p0 - p2;
+
+	return acos((e0.normalized()).dot(e1.normalized()));
+}
+
 Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 {
 	int numVertices = mesh.numVertices();
@@ -20,21 +36,18 @@ Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 	std::vector<Triplet> triplets;
 	triplets.reserve(numVertices * 7);
 
-	auto oppositeAngle = [&mesh](Mesh::HalfedgeHandle heh)
-	{
-		auto v0 = mesh.from_vertex_handle(heh);
-		auto v1 = mesh.to_vertex_handle(heh);
-		auto v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
-
-		auto p0 = mesh.point(v0);
-		auto p1 = mesh.point(v1);
-		auto p2 = mesh.point(v2);
-
-		auto e0 = p1 - p2;
-		auto e1 = p0 - p2;
-
-		return acos((e0.normalized()).dot(e1.normalized()));
-	};
+	// auto oppositeAngle = [&mesh](Mesh::HalfedgeHandle heh)
+	// {
+	// 	auto v0 = mesh.from_vertex_handle(heh);
+	// 	auto v1 = mesh.to_vertex_handle(heh);
+	// 	auto v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
+	// 	auto p0 = mesh.point(v0);
+	// 	auto p1 = mesh.point(v1);
+	// 	auto p2 = mesh.point(v2);
+	// 	auto e0 = p1 - p2;
+	// 	auto e1 = p0 - p2;
+	// 	return acos((e0.normalized()).dot(e1.normalized()));
+	// };
 
 	for (auto vi : mesh.vertices())
 	{
@@ -48,10 +61,10 @@ Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 
 			double cotAlpha = 0.0, cotBeta = 0.0;
 			if (voh.is_valid() && !mesh.is_boundary(voh))
-				cotAlpha = 1.0 / tan(oppositeAngle(voh));
+				cotAlpha = 1.0 / tan(oppositeAngle(mesh, voh));
 
 			if (mesh.opposite_halfedge_handle(voh).is_valid() && !mesh.opposite_halfedge_handle(voh).is_boundary())
-				cotBeta = 1.0 / tan(oppositeAngle(mesh.opposite_halfedge_handle(voh)));
+				cotBeta = 1.0 / tan(oppositeAngle(mesh, mesh.opposite_halfedge_handle(voh)));
 
 			triplets.push_back(Triplet(i, j, cotAlpha + cotBeta));
 
@@ -182,9 +195,10 @@ Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<dou
 Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 {
 	Eigen::SparseMatrix<double> laplacian = cotLaplacian(mesh);
+	Eigen::SimplicialLDLT solver(laplacian);
 
 	// Initial guess
-	Eigen::MatrixX2d X = tutteParameterization(mesh, laplacian);
+	Eigen::MatrixX2d U = tutteParameterization(mesh, laplacian);
 
 	// Directly flattern the faces to the 2D plane
 	std::vector<Eigen::Matrix2d> triangleXs(mesh.numFaces());
@@ -204,37 +218,66 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 		e01 << (x1 - x0).norm(), 0;
 		e02 = (x2 - x0).norm() * Eigen::Vector2d(cos(theta), sin(theta));
 
-		triangleXs[f.idx()] << e01(0), e02(0),
-			e01(1), e02(1);
+		// Use row vectors
+		triangleXs[f.idx()] << e01(0), e01(1),
+			e02(0), e02(1);
+	}
+
+	// Pre compute the cotangent weights
+	std::vector<double> cotWeights(mesh.numHalfEdges(), 0.0);
+	for (auto heh : mesh.halfedges())
+	{
+		if (heh.is_boundary() || !heh.is_valid())
+			continue;
+		cotWeights[heh.idx()] = 1.0 / tan(oppositeAngle(mesh, heh));
 	}
 
 	for (int iter = 0; iter < numIter; iter++)
 	{
 		// Local step
-		Eigen::MatrixX2d rhs;
+		Eigen::MatrixX2d rhs(mesh.numVertices(), 2);
 		rhs.setZero();
 
 		for (auto f : mesh.faces())
 		{
-			auto heh = mesh.halfedge_handle(f);
-			auto v0 = mesh.from_vertex_handle(heh),
-				 v1 = mesh.to_vertex_handle(heh),
-				 v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
+			// Get the 2D triangle in the UV plane, from the last iteration
+			auto heh01 = mesh.halfedge_handle(f);
+			auto v0 = mesh.from_vertex_handle(heh01),
+				 v1 = mesh.to_vertex_handle(heh01),
+				 v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh01));
+
+			Eigen::Vector2d u0 = U.row(v0.idx()),
+							u1 = U.row(v1.idx()),
+							u2 = U.row(v2.idx());
+
+			auto e01 = u1 - u0, e02 = u2 - u0;
 
 			Eigen::Matrix2d triangleU;
-			triangleU << X(v1.idx(), 0) - X(v0.idx(), 0), X(v2.idx(), 0) - X(v0.idx(), 0),
-				X(v1.idx(), 1) - X(v0.idx(), 1), X(v2.idx(), 1) - X(v0.idx(), 1);
+			triangleU << e01(0), e01(1),
+				e02(0), e02(1);
 
-			Eigen::Matrix2d J = triangleU * triangleXs[f.idx()].inverse();
+			// Compute the best fit rotation from the Jacobi matrix
+			// x and u are row vectors, so x * J == u, J = x^-1 * u
+			Eigen::Matrix2d J = triangleXs[f.idx()].inverse() * triangleU;
 			Eigen::Matrix2d R = bestFitARAP(J);
 
-			Eigen::Matrix2d triangleUU = R * triangleXs[f.idx()];
+			// Compute the right hand side of the linear system
+			Eigen::Matrix<double, 1, 2> x0, x1, x2;
+			x0 << 0, 0;
+			x1 << triangleXs[f.idx()](0, 0), triangleXs[f.idx()](0, 1);
+			x2 << triangleXs[f.idx()](1, 0), triangleXs[f.idx()](1, 1);
 
-			// rhs.block<1, 2>(v0.idx(), 0) +=
+			auto heh12 = mesh.next_halfedge_handle(heh01);
+			auto heh20 = mesh.next_halfedge_handle(heh12);
+
+			rhs.block<1, 2>(v0.idx(), 0) += cotWeights[heh01.idx()] * ((x0 - x1) * R) + cotWeights[heh20.idx()] * ((x0 - x2) * R);
+			rhs.block<1, 2>(v1.idx(), 0) += cotWeights[heh12.idx()] * ((x1 - x2) * R) + cotWeights[heh01.idx()] * ((x1 - x0) * R);
+			rhs.block<1, 2>(v2.idx(), 0) += cotWeights[heh20.idx()] * ((x2 - x0) * R) + cotWeights[heh12.idx()] * ((x2 - x1) * R);
 		}
 
 		// Global step
+		U = solver.solve(rhs);
 	}
 
-	return X;
+	return U;
 }

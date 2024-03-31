@@ -25,7 +25,7 @@ int main()
 			  << ", " << mesh.numFaces() << " faces"
 			  << std::endl;
 
-	Eigen::MatrixX2d tutte = localGlobalParameterization(mesh, 0);
+	Eigen::MatrixX2d tutte = localGlobalParameterization(mesh, 100);
 
 	std::cout << tutte << std::endl;
 
