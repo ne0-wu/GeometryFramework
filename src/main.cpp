@@ -25,19 +25,33 @@ int main()
 			  << ", " << mesh.numFaces() << " faces"
 			  << std::endl;
 
-	Eigen::MatrixX2d result = localGlobalParameterization(mesh, 100);
+	Eigen::MatrixX2d result = localGlobalParameterization(mesh, 0, LocalGlobalTarget::ARAP);
 
-	std::vector<double> paraResult(mesh.numVertices() * 3);
-	for (int i = 0; i < mesh.numVertices(); i++)
+	auto meshFrom2D = [](const Eigen::MatrixX2d &vertexList2D, const std::vector<unsigned int> &faceList) -> Mesh
 	{
-		paraResult[3 * i] = result(i, 0);
-		paraResult[3 * i + 1] = result(i, 1);
-		paraResult[3 * i + 2] = 0;
-	}
+		std::vector<double> vertexList;
+		for (int i = 0; i < vertexList2D.rows(); i++)
+		{
+			vertexList.push_back(vertexList2D(i, 0));
+			vertexList.push_back(vertexList2D(i, 1));
+			vertexList.push_back(0);
+		}
+		Mesh result(vertexList, faceList);
+		result.fitIntoUnitBall();
+		return result;
+	};
 
-	Mesh tutteTest(paraResult, mesh.faceList());
+	// std::vector<double> paraResult(mesh.numVertices() * 3);
+	// for (int i = 0; i < mesh.numVertices(); i++)
+	// {
+	// 	paraResult[3 * i] = result(i, 0);
+	// 	paraResult[3 * i + 1] = result(i, 1);
+	// 	paraResult[3 * i + 2] = 0;
+	// }
 
-	tutteTest.fitIntoUnitBall();
+	// Mesh tutteTest(paraResult, mesh.faceList());
+
+	// tutteTest.fitIntoUnitBall();
 
 	// tutteTest.move(Eigen::Vector3d(0, 0, -1));
 
@@ -49,12 +63,13 @@ int main()
 
 	// Add the mesh to the scene
 	// scene.addMesh(mesh);
-
-	scene.addMesh(tutteTest);
+	// scene.addMesh(tutteTest);
+	scene.addMesh(meshFrom2D(localGlobalParameterization(mesh, 0, LocalGlobalTarget::ARAP), mesh.faceList()));
 
 	// --------------------------------------------------
 
-	auto initialState = glfwGetKey(scene.window, GLFW_KEY_Q);
+	auto initialStateKeyQ = glfwGetKey(scene.window, GLFW_KEY_Q);
+	int numIter = 0;
 
 	// render loop
 	while (!scene.shouldClose())
@@ -63,12 +78,19 @@ int main()
 		// -----
 		scene.processInput();
 
-		if (glfwGetKey(scene.window, GLFW_KEY_Q) == GLFW_RELEASE && initialState == GLFW_PRESS)
+		if (glfwGetKey(scene.window, GLFW_KEY_Q) == GLFW_RELEASE && initialStateKeyQ == GLFW_PRESS)
 		{
 			scene.meshes[0].simplifyQEM((int)(scene.meshes[0].numVertices() * 0.9));
-			initialState = GLFW_RELEASE;
+			initialStateKeyQ = GLFW_RELEASE;
 		}
-		initialState = glfwGetKey(scene.window, GLFW_KEY_Q);
+		initialStateKeyQ = glfwGetKey(scene.window, GLFW_KEY_Q);
+
+		if (glfwGetKey(scene.window, GLFW_KEY_P) == GLFW_PRESS)
+		{
+			scene.meshes.clear();
+			scene.addMesh(meshFrom2D(localGlobalParameterization(mesh, numIter++, LocalGlobalTarget::ARAP), mesh.faceList()));
+			scene.saveFrame("numIterations=" + std::to_string(numIter) + ".png");
+		}
 
 		// render
 		// ------

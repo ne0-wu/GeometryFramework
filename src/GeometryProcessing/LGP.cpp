@@ -33,31 +33,43 @@ Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 	int numVertices = mesh.numVertices();
 
 	std::vector<Triplet> triplets;
-	triplets.reserve(numVertices * 7);
+	triplets.reserve(mesh.numHalfEdges() * 4);
 
-	for (auto vi : mesh.vertices())
+	// for (auto vi : mesh.vertices())
+	// {
+	// 	int i = vi.idx();
+	// 	double sumCotAlphaBeta = 0.0;
+
+	// 	for (auto voh : mesh.voh_range(vi))
+	// 	{
+	// 		auto vj = mesh.to_vertex_handle(voh);
+	// 		int j = vj.idx();
+
+	// 		double cotAlpha = 0.0, cotBeta = 0.0;
+	// 		if (voh.is_valid() && !mesh.is_boundary(voh))
+	// 			cotAlpha = 1.0 / tan(oppositeAngle(mesh, voh));
+
+	// 		if (mesh.opposite_halfedge_handle(voh).is_valid() && !mesh.opposite_halfedge_handle(voh).is_boundary())
+	// 			cotBeta = 1.0 / tan(oppositeAngle(mesh, mesh.opposite_halfedge_handle(voh)));
+
+	// 		triplets.push_back(Triplet(i, j, cotAlpha + cotBeta));
+
+	// 		sumCotAlphaBeta += cotAlpha + cotBeta;
+	// 	}
+
+	// 	triplets.push_back(Triplet(i, i, -sumCotAlphaBeta));
+	// }
+
+	for (auto heh : mesh.halfedges())
 	{
-		int i = vi.idx();
-		double sumCotAlphaBeta = 0.0;
+		if (heh.is_boundary() || !heh.is_valid())
+			continue;
 
-		for (auto voh : mesh.voh_range(vi))
-		{
-			auto vj = mesh.to_vertex_handle(voh);
-			int j = vj.idx();
-
-			double cotAlpha = 0.0, cotBeta = 0.0;
-			if (voh.is_valid() && !mesh.is_boundary(voh))
-				cotAlpha = 1.0 / tan(oppositeAngle(mesh, voh));
-
-			if (mesh.opposite_halfedge_handle(voh).is_valid() && !mesh.opposite_halfedge_handle(voh).is_boundary())
-				cotBeta = 1.0 / tan(oppositeAngle(mesh, mesh.opposite_halfedge_handle(voh)));
-
-			triplets.push_back(Triplet(i, j, cotAlpha + cotBeta));
-
-			sumCotAlphaBeta += cotAlpha + cotBeta;
-		}
-
-		triplets.push_back(Triplet(i, i, -sumCotAlphaBeta));
+		double cot = 1.0 / tan(oppositeAngle(mesh, heh));
+		triplets.push_back(Triplet(heh.from().idx(), heh.to().idx(), cot));
+		triplets.push_back(Triplet(heh.to().idx(), heh.from().idx(), cot));
+		triplets.push_back(Triplet(heh.from().idx(), heh.from().idx(), -cot));
+		triplets.push_back(Triplet(heh.to().idx(), heh.to().idx(), -cot));
 	}
 
 	Eigen::SparseMatrix<double> L(numVertices, numVertices);
@@ -99,6 +111,8 @@ struct SVD22
 
 	SVD22(Eigen::Matrix2d &A)
 	{
+		// This algorithm actually provides the signed SVD decomposition
+		// where sigma 2 could be negative
 		double E = (A(0, 0) + A(1, 1)) / 2,
 			   F = (A(0, 0) - A(1, 1)) / 2,
 			   G = (A(1, 0) + A(0, 1)) / 2,
@@ -134,68 +148,72 @@ Eigen::Matrix2d bestFitASAP(Eigen::Matrix2d &J)
 }
 
 // Tutte Parameterization with given laplacian matrix
-Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<double> laplacian)
+Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<double> const &laplacian)
 {
 	int numVertices = mesh.numVertices();
 	std::vector<int> boundary = boundaryVertices(mesh);
 
 	// Fix the boundary vertices to the unit circle
-	Eigen::MatrixX2d b(numVertices + boundary.size(), 2);
+	Eigen::MatrixX2d b(numVertices, 2);
 	b.setZero();
 	for (int i = 0; i < boundary.size(); i++)
 	{
-		b(numVertices + i, 0) = cos(2 * M_PI * i / boundary.size());
-		b(numVertices + i, 1) = sin(2 * M_PI * i / boundary.size());
+		b(boundary[i], 0) = cos(2 * M_PI * i / boundary.size());
+		b(boundary[i], 1) = sin(2 * M_PI * i / boundary.size());
 	}
 
 	// Construct the matrix A for the linear system Ax = b
-	// Start by extracting triplets from the laplacian matrix
 	std::vector<Triplet> triplets;
 	triplets.reserve(laplacian.nonZeros());
 
-	for (int k = 0; k < laplacian.outerSize(); ++k)
-		for (Eigen::SparseMatrix<double>::InnerIterator it(laplacian, k); it; ++it)
-		{
-			// Skip the rows of boundary vertices
-			if (std::find(boundary.begin(), boundary.end(), it.row()) != boundary.end())
-				continue;
-
-			// Add the triplet to the list
-			triplets.push_back(Triplet(it.row(), it.col(), it.value()));
-		}
-
 	// Add the boundary constraints
 	for (int i = 0; i < boundary.size(); i++)
-		triplets.push_back(Triplet(numVertices + i, boundary[i], 1.0));
+		triplets.push_back(Triplet(boundary[i], boundary[i], 1.0));
+
+	// Extract triplets from the laplacian matrix
+	std::sort(boundary.begin(), boundary.end());
+	for (int k = 0; k < laplacian.outerSize(); ++k)
+	{
+		// Skip the rows of boundary vertices
+		// Assume that the matrix is symmetric
+		if (std::binary_search(boundary.begin(), boundary.end(), k))
+			continue;
+
+		for (Eigen::SparseMatrix<double>::InnerIterator it(laplacian, k); it; ++it)
+		{
+			// Add the triplet to the list
+			if (laplacian.Flags & Eigen::RowMajorBit)
+				triplets.push_back(Triplet(it.row(), it.col(), it.value())); // Row major
+			else
+				triplets.push_back(Triplet(it.col(), it.row(), it.value())); // Column major
+		}
+	}
 
 	// Construct the sparse matrix A
-	Eigen::SparseMatrix<double> A(numVertices + boundary.size(), numVertices);
+	Eigen::SparseMatrix<double> A(numVertices, numVertices);
 	A.setFromTriplets(triplets.begin(), triplets.end());
 
 	// Solve the linear system
-	// Eigen::SimplicialLDLT solver(A);
-	// Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
-	// solver.compute(A);
-
-	Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double>> solver;
+	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 	solver.compute(A);
+	Eigen::MatrixX2d U = solver.solve(b);
 
-	return solver.solve(b);
+	return U;
 }
 
 Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter, LocalGlobalTarget target)
 {
-	TickTock ttTutte("Tutte Parameterization");
+	TickTock tt("Tutte Parameterization");
 	// Compute the cotangent Laplacian matrix
 	Eigen::SparseMatrix<double> laplacian = cotLaplacian(mesh);
 
 	// Initial guess
 	Eigen::MatrixX2d U = tutteParameterization(mesh, laplacian);
 
-	ttTutte.tock();
+	tt.tockAndTick("Local Global Parameterization");
 
-	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteCholesky<double>> solver;
-	solver.setTolerance(1e-5);
+	// Precompute the solver
+	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 	solver.compute(laplacian);
 
 	// Directly flattern the faces to the 2D plane
@@ -230,11 +248,11 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter, LocalGloba
 		cotWeights[heh.idx()] = 1.0 / tan(oppositeAngle(mesh, heh));
 	}
 
-	TickTock ttLG("Local-Global Iteration");
+	TickTock ttIt("Local-Global Iteration");
 
 	for (int iter = 1; iter <= numIter; iter++)
 	{
-		ttLG.tick();
+		ttIt.tick();
 		std::cout << "Iteration " << iter << std::endl;
 
 		// Local step
@@ -292,8 +310,10 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter, LocalGloba
 		// Global step
 		U = solver.solve(rhs);
 
-		ttLG.tock();
+		ttIt.tock();
 	}
+
+	tt.tock();
 
 	return U;
 }

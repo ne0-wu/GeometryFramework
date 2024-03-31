@@ -23,10 +23,33 @@ public:
         start = std::chrono::high_resolution_clock::now();
     }
 
+    void tick(std::string message)
+    {
+        start = std::chrono::high_resolution_clock::now();
+        this->message = message;
+    }
+
     void tock()
     {
         stop = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = stop - start;
         std::cout << message << " took " << duration.count() << " seconds." << std::endl;
+    }
+
+    void tockAndTick()
+    {
+        stop = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = stop - start;
+        std::cout << message << " took " << duration.count() << " seconds." << std::endl;
+        start = std::chrono::high_resolution_clock::now();
+    }
+
+    void tockAndTick(std::string message)
+    {
+        stop = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = stop - start;
+        std::cout << this->message << " took " << duration.count() << " seconds." << std::endl;
+        start = std::chrono::high_resolution_clock::now();
+        this->message = message;
     }
 };
