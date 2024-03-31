@@ -64,12 +64,14 @@ int main()
 	// Add the mesh to the scene
 	// scene.addMesh(mesh);
 	// scene.addMesh(tutteTest);
-	scene.addMesh(meshFrom2D(localGlobalParameterization(mesh, 0, LocalGlobalTarget::ARAP), mesh.faceList()));
+	// scene.addMesh(meshFrom2D(localGlobalParameterization(mesh, 0, LocalGlobalTarget::ARAP), mesh.faceList()));
+	scene.addMesh(mesh);
 
 	// --------------------------------------------------
 
-	auto initialStateKeyQ = glfwGetKey(scene.window, GLFW_KEY_Q);
-	int numIter = 0;
+	// auto initialStateKeyQ = glfwGetKey(scene.window, GLFW_KEY_Q);
+	auto initialStateKeyP = glfwGetKey(scene.window, GLFW_KEY_P);
+	int numIter = -2;
 
 	// render loop
 	while (!scene.shouldClose())
@@ -78,19 +80,21 @@ int main()
 		// -----
 		scene.processInput();
 
-		if (glfwGetKey(scene.window, GLFW_KEY_Q) == GLFW_RELEASE && initialStateKeyQ == GLFW_PRESS)
-		{
-			scene.meshes[0].simplifyQEM((int)(scene.meshes[0].numVertices() * 0.9));
-			initialStateKeyQ = GLFW_RELEASE;
-		}
-		initialStateKeyQ = glfwGetKey(scene.window, GLFW_KEY_Q);
+		// if (glfwGetKey(scene.window, GLFW_KEY_Q) == GLFW_RELEASE && initialStateKeyQ == GLFW_PRESS)
+		// {
+		// 	scene.meshes[0].simplifyQEM((int)(scene.meshes[0].numVertices() * 0.9));
+		// 	initialStateKeyQ = GLFW_RELEASE;
+		// }
+		// initialStateKeyQ = glfwGetKey(scene.window, GLFW_KEY_Q);
 
-		if (glfwGetKey(scene.window, GLFW_KEY_P) == GLFW_PRESS)
+		if (glfwGetKey(scene.window, GLFW_KEY_P) == GLFW_RELEASE && initialStateKeyP == GLFW_PRESS)
 		{
 			scene.meshes.clear();
-			scene.addMesh(meshFrom2D(localGlobalParameterization(mesh, numIter++, LocalGlobalTarget::ARAP), mesh.faceList()));
-			scene.saveFrame("numIterations=" + std::to_string(numIter) + ".png");
+			numIter += 2;
+			scene.addMesh(meshFrom2D(localGlobalParameterization(mesh, numIter, LocalGlobalTarget::ASAP), mesh.faceList()));
+			scene.setCamera(defaultCamera);
 		}
+		initialStateKeyP = glfwGetKey(scene.window, GLFW_KEY_P);
 
 		// render
 		// ------

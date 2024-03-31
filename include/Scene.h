@@ -158,6 +158,11 @@ public:
 		return projection;
 	}
 
+	void setCamera(Camera camera)
+	{
+		this->camera = camera;
+	}
+
 	void processInput()
 	{
 		// Control + S to save the current mesh

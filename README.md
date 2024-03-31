@@ -23,5 +23,9 @@ This project has been tested on Windows 10 with Visual Studio 2022. It should wo
  
 ## About homeworks
 
+- **Homework 3** Press `P` to perform local-global parameterization on the input mesh. Each time you press `P`, the program will perform two iterations of the parameterization.
+
+### Legacy homeworks
+The following homeworks' user interfaces have been removed.
 - **Homework 1** Press `Q` to simplify the mesh with QEM. The target is to reduce 10% of the vertices each time.
 - **Homework 2** No user interface has been implemented. The program will automatically open 'meshes/spot_simplified.obj', sample a point cloud on it and reconstruct the mesh using Poisson reconstruction. The result will be saved as 'output.obj' in 'build/HelloOpenGL/{Release or Debug or ...}'.
