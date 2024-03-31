@@ -6,10 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(HelloOpenGL)
 
-find_package(OpenMP)
-
-# Find the OpenGL package
-find_package(OpenGL)
+find_package(OpenGL) # Find the OpenGL package
+find_package(OpenMP) # Find the OpenMP package
 
 # Setup libraries
 include(FetchContent)
@@ -19,11 +17,9 @@ FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
 )
-
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
 FetchContent_MakeAvailable(glfw)
 
 # OpenMesh
@@ -32,15 +28,12 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://www.graphics.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
 	GIT_TAG        OpenMesh-10.0
 )
-
 if (WIN32 AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 endif()
-
 set(BUILD_APPS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-
 FetchContent_MakeAvailable(openmesh)
 
 add_compile_definitions(_USE_MATH_DEFINES)
@@ -63,7 +56,7 @@ add_executable(HelloOpenGL ${SOURCE_FILES} ${HEADER_FILES})
 # Link the libraries
 target_link_libraries(HelloOpenGL
 	${OPENGL_LIBRARIES}  # OpenGL libraries
-	OpenMP::OpenMP_CXX
+	OpenMP::OpenMP_CXX	 # OpenMP
 	glfw                 # GLFW library for creating windows, contexts and surfaces, receiving input and events
 	OpenMeshCore         # Core OpenMesh library
 	OpenMeshTools        # Tools provided by OpenMesh

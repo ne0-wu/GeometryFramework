@@ -1,12 +1,6 @@
 // This file implements the Local-Global Parameterization algorithm.
 
-// #include <algorithm>
-#include <chrono>
-
 #include <Eigen/Sparse>
-// #include <Eigen/SparseCholesky>
-// #include <Eigen/SparseQR>
-// #include <Eigen/IterativeLinearSolvers>
 
 #include "GeometryProcessing.h"
 #include "Utils/TickTock.h"
@@ -16,6 +10,7 @@ struct Triplet : public Eigen::Triplet<double>
 	Triplet(int i, int j, double v) : Eigen::Triplet<double>(i, j, v) {}
 };
 
+// Compute the angle opposite to the halfedge
 double oppositeAngle(const Mesh &mesh, Mesh::HalfedgeHandle heh)
 {
 	auto v0 = mesh.from_vertex_handle(heh);
@@ -32,25 +27,13 @@ double oppositeAngle(const Mesh &mesh, Mesh::HalfedgeHandle heh)
 	return acos((e0.normalized()).dot(e1.normalized()));
 }
 
+// Compute the cotangent Laplacian matrix
 Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 {
 	int numVertices = mesh.numVertices();
 
 	std::vector<Triplet> triplets;
 	triplets.reserve(numVertices * 7);
-
-	// auto oppositeAngle = [&mesh](Mesh::HalfedgeHandle heh)
-	// {
-	// 	auto v0 = mesh.from_vertex_handle(heh);
-	// 	auto v1 = mesh.to_vertex_handle(heh);
-	// 	auto v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
-	// 	auto p0 = mesh.point(v0);
-	// 	auto p1 = mesh.point(v1);
-	// 	auto p2 = mesh.point(v2);
-	// 	auto e0 = p1 - p2;
-	// 	auto e1 = p0 - p2;
-	// 	return acos((e0.normalized()).dot(e1.normalized()));
-	// };
 
 	for (auto vi : mesh.vertices())
 	{
@@ -96,7 +79,7 @@ std::vector<int> boundaryVertices(const Mesh &mesh)
 			break;
 		}
 
-	// If you are on a boundary, the next halfedge is guaranteed to be also a boundary halfedge.
+	// OpenMesh Doc: If you are on a boundary, the next halfedge is guaranteed to be also a boundary halfedge.
 	for (auto heh = firstBoundaryHalfedge; heh.is_valid(); heh = mesh.next_halfedge_handle(heh))
 	{
 		boundaryVertices.push_back(mesh.to_vertex_handle(heh).idx());
@@ -110,7 +93,6 @@ std::vector<int> boundaryVertices(const Mesh &mesh)
 struct SVD22
 {
 	// For an input matrix A, the SVD decomposition is given by A = U * S * V^T
-
 	Eigen::Matrix2d U;
 	Eigen::Matrix2d V;
 	Eigen::Matrix2d S;
@@ -201,7 +183,7 @@ Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<dou
 	return solver.solve(b);
 }
 
-Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
+Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter, LocalGlobalTarget target)
 {
 	TickTock ttTutte("Tutte Parameterization");
 	// Compute the cotangent Laplacian matrix
@@ -252,15 +234,15 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 
 	for (int iter = 1; iter <= numIter; iter++)
 	{
+		ttLG.tick();
 		std::cout << "Iteration " << iter << std::endl;
 
-		ttLG.tick();
-
 		// Local step
+		TickTock ttLocal("Local Step");
+
 		Eigen::MatrixX2d rhs(mesh.numVertices(), 2);
 		rhs.setZero();
 
-		TickTock ttLocal("Local Step");
 		for (auto f : mesh.faces())
 		{
 			// Get the 2D triangle in the UV plane, from the last iteration
@@ -280,8 +262,17 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter)
 			// Compute the best fit rotation from the Jacobi matrix
 			// x and u are row vectors, so x * J == u, J = x^-1 * u
 			Eigen::Matrix2d J = triangleXs[f.idx()].inverse() * triangleU;
-			// Eigen::Matrix2d R = bestFitARAP(J);
-			Eigen::Matrix2d R = bestFitASAP(J);
+
+			Eigen::Matrix2d R;
+			switch (target)
+			{
+			case LocalGlobalTarget::ARAP:
+				R = bestFitARAP(J);
+				break;
+			case LocalGlobalTarget::ASAP:
+				R = bestFitASAP(J);
+				break;
+			}
 
 			// Compute the right hand side of the linear system
 			Eigen::Matrix<double, 1, 2> x0, x1, x2;

@@ -3,4 +3,10 @@
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);
 
-Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 100);
+enum class LocalGlobalTarget
+{
+    ARAP,
+    ASAP
+};
+
+Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 100, LocalGlobalTarget target = LocalGlobalTarget::ARAP);
