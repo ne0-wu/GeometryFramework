@@ -5,10 +5,7 @@
 #include "GeometryProcessing.h"
 #include "Utils/TickTock.h"
 
-struct Triplet : public Eigen::Triplet<double>
-{
-	Triplet(int i, int j, double v) : Eigen::Triplet<double>(i, j, v) {}
-};
+typedef Eigen::Triplet<double> Triplet;
 
 // Compute the angle opposite to the halfedge
 double oppositeAngle(const Mesh &mesh, Mesh::HalfedgeHandle heh)
@@ -34,31 +31,6 @@ Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
 
 	std::vector<Triplet> triplets;
 	triplets.reserve(mesh.numHalfEdges() * 4);
-
-	// for (auto vi : mesh.vertices())
-	// {
-	// 	int i = vi.idx();
-	// 	double sumCotAlphaBeta = 0.0;
-
-	// 	for (auto voh : mesh.voh_range(vi))
-	// 	{
-	// 		auto vj = mesh.to_vertex_handle(voh);
-	// 		int j = vj.idx();
-
-	// 		double cotAlpha = 0.0, cotBeta = 0.0;
-	// 		if (voh.is_valid() && !mesh.is_boundary(voh))
-	// 			cotAlpha = 1.0 / tan(oppositeAngle(mesh, voh));
-
-	// 		if (mesh.opposite_halfedge_handle(voh).is_valid() && !mesh.opposite_halfedge_handle(voh).is_boundary())
-	// 			cotBeta = 1.0 / tan(oppositeAngle(mesh, mesh.opposite_halfedge_handle(voh)));
-
-	// 		triplets.push_back(Triplet(i, j, cotAlpha + cotBeta));
-
-	// 		sumCotAlphaBeta += cotAlpha + cotBeta;
-	// 	}
-
-	// 	triplets.push_back(Triplet(i, i, -sumCotAlphaBeta));
-	// }
 
 	for (auto heh : mesh.halfedges())
 	{
@@ -316,4 +288,58 @@ Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter, LocalGloba
 	tt.tock();
 
 	return U;
+}
+
+Eigen::SparseMatrix<double> Parameterization::laplacianUniform()
+{
+	std::vector<Triplet> triplets;
+	triplets.reserve(mesh.numHalfEdges() + mesh.numVertices());
+
+	for (auto v : mesh.vertices())
+	{
+		double valence = mesh.valence(v);
+		for (auto vv : mesh.vv_range(v))
+			triplets.push_back(Triplet(v.idx(), vv.idx(), -1.0 / valence));
+		triplets.push_back(Triplet(v.idx(), v.idx(), 1.0));
+	}
+
+	Eigen::SparseMatrix<double> L(mesh.numVertices(), mesh.numVertices());
+	L.setFromTriplets(triplets.begin(), triplets.end());
+
+	return L;
+}
+
+void Parameterization::computeCotangents()
+{
+	cotangents.resize(mesh.numHalfEdges(), 0.0);
+
+	for (auto heh : mesh.halfedges())
+	{
+		if (heh.is_boundary() || !heh.is_valid())
+			continue;
+		cotangents[heh.idx()] = 1.0 / tan(oppositeAngle(mesh, heh));
+	}
+}
+
+Eigen::SparseMatrix<double> Parameterization::laplacianCotangent()
+{
+	std::vector<Triplet> triplets;
+	triplets.reserve(mesh.numHalfEdges() * 4);
+
+	for (auto heh : mesh.halfedges())
+	{
+		if (heh.is_boundary() || !heh.is_valid())
+			continue;
+
+		double cot = cotangents[heh.idx()];
+		triplets.push_back(Triplet(heh.from().idx(), heh.to().idx(), cot));
+		triplets.push_back(Triplet(heh.to().idx(), heh.from().idx(), cot));
+		triplets.push_back(Triplet(heh.from().idx(), heh.from().idx(), -cot));
+		triplets.push_back(Triplet(heh.to().idx(), heh.to().idx(), -cot));
+	}
+
+	Eigen::SparseMatrix<double> L(mesh.numVertices(), mesh.numVertices());
+	L.setFromTriplets(triplets.begin(), triplets.end());
+
+	return L;
 }

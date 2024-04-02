@@ -77,7 +77,6 @@ public:
 
 	// Geometry information
 	// --------------------
-
 	Point boundingBoxMin();
 	Point boundingBoxMax();
 
@@ -90,6 +89,10 @@ public:
 	void moveBarycenterTo(Point destiny);
 
 	void moveCenterToOrigin();
+
+	// Boundary
+	// --------
+	std::vector<Mesh::VertexHandle> boundaryVertices();
 
 	// Basic geometry transformations
 	// ------------------------------
