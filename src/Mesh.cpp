@@ -1,7 +1,3 @@
-#ifndef OM_STATIC_BUILD
-#define OM_STATIC_BUILD
-#endif
-
 #include <OpenMesh/Core/IO/MeshIO.hh>
 
 #include "Mesh.h"

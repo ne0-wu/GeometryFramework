@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 class Shader
 {
