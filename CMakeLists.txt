@@ -2,14 +2,13 @@ cmake_minimum_required(VERSION 3.25)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-
 project(HelloOpenGL)
 
-find_package(OpenGL) # Find the OpenGL package
-find_package(OpenMP) # Find the OpenMP package
-
 # Setup libraries
+# ---------------
+find_package(OpenGL)	# Find the OpenGL package
+find_package(OpenMP)	# Find the OpenMP package
+
 include(FetchContent)
 
 # GLFW
@@ -20,7 +19,6 @@ FetchContent_Declare(
 )
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(glfw)
 
 # GLAD
 FetchContent_Declare(
@@ -29,8 +27,6 @@ FetchContent_Declare(
 	GIT_TAG			glad2
 	SOURCE_SUBDIR	cmake
 )
-FetchContent_MakeAvailable(glad)
-glad_add_library(glad_gl_core_33 REPRODUCIBLE API gl:core=3.3)
 
 # OpenMesh
 FetchContent_Declare(
@@ -38,10 +34,14 @@ FetchContent_Declare(
 	GIT_REPOSITORY	https://www.graphics.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
 	GIT_TAG			OpenMesh-10.0
 )
-if (WIN32 AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
-endif()
-FetchContent_MakeAvailable(openmesh)
+
+FetchContent_MakeAvailable(
+	glfw
+	glad
+	openmesh
+)
+
+glad_add_library(glad_gl_core_33 REPRODUCIBLE API gl:core=3.3)
 
 add_compile_definitions(_USE_MATH_DEFINES)
 add_compile_definitions(OM_STATIC_BUILD)
@@ -53,37 +53,35 @@ include_directories(3rdparty/include)
 # Find source files
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-# Add the executable
-add_executable(HelloOpenGL
-	${SOURCE_FILES}
-	# 3rdparty/src/glad.c
-)
+add_library(GeometryFw STATIC ${SOURCE_FILES})
 
 # Link the libraries
-target_link_libraries(HelloOpenGL
+target_link_libraries(GeometryFw PUBLIC
 	${OPENGL_LIBRARIES}	# OpenGL libraries
 	glad_gl_core_33		# GLAD library for loading OpenGL functions
-	OpenMP::OpenMP_CXX	# OpenMP
-	glfw				# GLFW library for creating windows, contexts and surfaces, receiving input and events
+	glfw				# GLFW library for creating windows and receiving input and events
 	OpenMeshCore		# Core OpenMesh library
 	OpenMeshTools		# Tools provided by OpenMesh
+	OpenMP::OpenMP_CXX	# OpenMP library for parallel computing
 )
 
-# Handle excutable output path and shaders
-set_property(TARGET HelloOpenGL PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:HelloOpenGL>")
+add_subdirectory(examples)
 
-file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/HelloOpenGL/)
+# # Handle excutable output path and shaders
+# set_property(TARGET HelloOpenGL PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:HelloOpenGL>")
 
-set_target_properties(HelloOpenGL PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/HelloOpenGL)
+# file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/HelloOpenGL/)
 
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/HelloOpenGL)
+# set_target_properties(HelloOpenGL PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/HelloOpenGL)
 
-add_custom_command(
-	TARGET HelloOpenGL POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_directory
-		"${CMAKE_SOURCE_DIR}/shaders"
-		"$<TARGET_FILE_DIR:HelloOpenGL>/shaders"
-	COMMAND ${CMAKE_COMMAND} -E copy_directory
-		"${CMAKE_SOURCE_DIR}/meshes"
-		"$<TARGET_FILE_DIR:HelloOpenGL>/meshes"
-)
+# set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/HelloOpenGL)
+
+# add_custom_command(
+# 	TARGET HelloOpenGL POST_BUILD
+# 	COMMAND ${CMAKE_COMMAND} -E copy_directory
+# 		"${CMAKE_SOURCE_DIR}/shaders"
+# 		"$<TARGET_FILE_DIR:HelloOpenGL>/shaders"
+# 	COMMAND ${CMAKE_COMMAND} -E copy_directory
+# 		"${CMAKE_SOURCE_DIR}/meshes"
+# 		"$<TARGET_FILE_DIR:HelloOpenGL>/meshes"
+# )
