@@ -4,6 +4,10 @@
 #include "Mesh.h"
 #include "PointCloud.h"
 
+// #define IMPLEMENT_QEM
+#define IMPLEMENT_LGP
+// #define IMPLEMENT_PSR
+
 void poissonSurfaceReconstruction(PointCloud &pointCloud);
 
 class Parameterization
@@ -18,7 +22,7 @@ protected:
 	Eigen::MatrixX2d uv; // output uv coordinates
 };
 
-class TutteParameterization : public Parameterization
+class Tutte : public Parameterization
 {
 public:
 	enum class LaplacianType
@@ -27,7 +31,7 @@ public:
 		COTANGENT
 	};
 
-	TutteParameterization(Mesh const &mesh, LaplacianType laplacianType = LaplacianType::UNIFORM)
+	Tutte(Mesh const &mesh, LaplacianType laplacianType = LaplacianType::UNIFORM)
 		: Parameterization(mesh), laplacianType(laplacianType) {}
 
 	void setLaplacianType(LaplacianType type)
@@ -63,7 +67,7 @@ protected:
 	void tutte();
 };
 
-class LocalGlobalParameterization : public TutteParameterization
+class LocalGlobal : public Tutte
 {
 public:
 	enum class LocalGlobalTarget
@@ -72,8 +76,8 @@ public:
 		ASAP
 	};
 
-	LocalGlobalParameterization(Mesh const &mesh, LocalGlobalTarget target = LocalGlobalTarget::ARAP, int numIter = 100)
-		: TutteParameterization(mesh), target(target), numIter(numIter) {}
+	LocalGlobal(Mesh const &mesh, LocalGlobalTarget target = LocalGlobalTarget::ARAP, int numIter = 100)
+		: Tutte(mesh), target(target), numIter(numIter) {}
 
 	void setNumIter(int numIter) { this->numIter = numIter; }
 	int getNumIter() { return numIter; }

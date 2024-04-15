@@ -14,6 +14,8 @@
 
 #include "GeometryProcessing.h"
 
+#ifdef IMPLEMENT_PSR
+
 // Utils
 
 class GaussianQuadrature
@@ -748,3 +750,5 @@ void poissonSurfaceReconstruction(PointCloud &pointCloud)
 
 	std::cout << "Output mesh to output.obj" << std::endl;
 }
+
+#endif

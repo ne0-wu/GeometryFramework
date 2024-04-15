@@ -5,6 +5,9 @@
 #include <algorithm>
 
 #include "Mesh.h"
+#include "GeometryProcessing.h"
+
+#ifdef IMPLEMENT_QEM
 
 void Mesh::collapseEdge(Mesh::HalfedgeHandle edge, Point contractedPosition)
 {
@@ -116,3 +119,5 @@ bool Mesh::simplifyQEM(int targetNumVertices)
 
 	return true;
 }
+
+#endif

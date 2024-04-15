@@ -7,10 +7,7 @@
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <OpenMesh/Core/Geometry/EigenVectorT.hh>
 
-#include <Eigen/Core>
 #include <Eigen/Dense>
-
-// #include "GLMesh.h"
 
 struct MyTraits : public OpenMesh::DefaultTraits
 {
@@ -26,9 +23,6 @@ struct MyTraits : public OpenMesh::DefaultTraits
 
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
 {
-private:
-	// GLMesh glmesh;
-
 public:
 	Mesh(const std::string &filename);
 	Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int> &faceList);
@@ -46,34 +40,6 @@ public:
 	int numEdges() const { return this->n_edges(); }
 
 	int numHalfEdges() const { return this->n_halfedges(); }
-
-	// Render
-	// ------
-	// void initializeGLMesh() { glmesh = GLMesh(vertexListFloat(), faceList()); }
-
-	// void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
-	// {
-	// 	glmesh.initializeShader(vertexShaderSource, fragmentShaderSource, fromFile);
-	// }
-
-	// int getShaderID() { return glmesh.getShaderID(); }
-
-	// void bindShader() { glmesh.bindShader(); }
-
-	// void draw()
-	// {
-	// 	glmesh.setMesh(vertexListFloat(), faceList());
-
-	// 	int vertexColorLocation = glGetUniformLocation(getShaderID(), "color");
-	// 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	// 	glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
-	// 	glmesh.draw();
-
-	// 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	// 	glLineWidth(2.0f);
-	// 	glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-	// 	glmesh.draw();
-	// }
 
 	// Geometry information
 	// --------------------

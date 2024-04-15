@@ -24,7 +24,7 @@ int main()
 	Mesh mesh("meshes/camelhead.obj");
 	mesh.fitIntoUnitBall();
 
-	auto localGlobal = LocalGlobalParameterization(mesh);
+	auto localGlobal = LocalGlobal(mesh);
 	localGlobal.flatten();
 
 	std::cout << mesh.numVertices() << " vertices, "
@@ -48,12 +48,11 @@ int main()
 	// GUI states
 	int numIter = 0;
 
+	glfwWindowHint(GLFW_SAMPLES, 4);
+
 	while (!window.shouldClose())
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		window.pollEvents();
-
 		window.processInput();
 		scene.processInput();
 
@@ -64,7 +63,7 @@ int main()
 		{
 			ImGui::Begin("Local-Global Parameterization");
 
-			ImGui::SliderInt("Iterations", &numIter, 1, 100);
+			ImGui::SliderInt("Iterations", &numIter, 0, 100);
 
 			ImGui::End();
 		}
@@ -83,7 +82,7 @@ int main()
 			localGlobal.setNumIter(numIter);
 			localGlobal.flatten();
 			flattenMesh(mesh2d, localGlobal.getUV());
-			mesh2d.moveCenterToOrigin();
+			mesh2d.fitIntoUnitBall();
 			scene.glMeshes[0].shouldUpdate = true;
 		}
 	}

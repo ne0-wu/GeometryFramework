@@ -6,9 +6,6 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb/stb_image_write.h>
-
 #include "GLMesh.h"
 #include "Shader.h"
 
@@ -61,15 +58,6 @@ public:
 	Camera camera = defaultCamera;
 	std::vector<GLMesh> glMeshes;
 
-	Scene()
-	{
-	}
-
-	~Scene()
-	{
-		glfwTerminate();
-	}
-
 	Eigen::Matrix4f modelMatrix()
 	{
 		Eigen::Matrix4f model;
@@ -114,6 +102,11 @@ public:
 
 	void processInput()
 	{
+		// Update camera aspect
+		int width, height;
+		glfwGetWindowSize(window, &width, &height);
+		camera.aspect = (float)width / (float)height;
+
 		// Camera control
 		float currentFrameTime = glfwGetTime();
 		float deltaTime = currentFrameTime - lastFrameTime;
@@ -209,6 +202,8 @@ public:
 			glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix().data());
 			glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projectionMatrix().data());
 
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 			glMesh.draw();
 		}
 	}
@@ -224,17 +219,5 @@ public:
 	void addMesh(GLMesh &glMesh)
 	{
 		glMeshes.push_back(glMesh);
-	}
-
-	void saveFrame(std::string filename)
-	{
-		// int width, height;
-		// glfwGetFramebufferSize(window, &width, &height);
-
-		// std::vector<unsigned char> pixels(3 * width * height);
-		// glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-
-		// stbi_flip_vertically_on_write(true);
-		// stbi_write_png(filename.c_str(), width, height, 3, pixels.data(), 0);
 	}
 };

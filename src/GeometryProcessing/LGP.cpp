@@ -5,74 +5,9 @@
 #include "GeometryProcessing.h"
 #include "Utils/TickTock.h"
 
+#ifdef IMPLEMENT_LGP
+
 typedef Eigen::Triplet<double> Triplet;
-
-// // Compute the angle opposite to the halfedge
-// double oppositeAngle(const Mesh &mesh, Mesh::HalfedgeHandle heh)
-// {
-// 	auto v0 = mesh.from_vertex_handle(heh);
-// 	auto v1 = mesh.to_vertex_handle(heh);
-// 	auto v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
-
-// 	auto p0 = mesh.point(v0);
-// 	auto p1 = mesh.point(v1);
-// 	auto p2 = mesh.point(v2);
-
-// 	auto e0 = p1 - p2;
-// 	auto e1 = p0 - p2;
-
-// 	return acos((e0.normalized()).dot(e1.normalized()));
-// }
-
-// // Compute the cotangent Laplacian matrix
-// Eigen::SparseMatrix<double> cotLaplacian(const Mesh &mesh)
-// {
-// 	int numVertices = mesh.numVertices();
-
-// 	std::vector<Triplet> triplets;
-// 	triplets.reserve(mesh.numHalfEdges() * 4);
-
-// 	for (auto heh : mesh.halfedges())
-// 	{
-// 		if (heh.is_boundary() || !heh.is_valid())
-// 			continue;
-
-// 		double cot = 1.0 / tan(oppositeAngle(mesh, heh));
-// 		triplets.push_back(Triplet(heh.from().idx(), heh.to().idx(), cot));
-// 		triplets.push_back(Triplet(heh.to().idx(), heh.from().idx(), cot));
-// 		triplets.push_back(Triplet(heh.from().idx(), heh.from().idx(), -cot));
-// 		triplets.push_back(Triplet(heh.to().idx(), heh.to().idx(), -cot));
-// 	}
-
-// 	Eigen::SparseMatrix<double> L(numVertices, numVertices);
-// 	L.setFromTriplets(triplets.begin(), triplets.end());
-
-// 	return L;
-// }
-
-// std::vector<int> boundaryVertices(const Mesh &mesh)
-// {
-// 	std::vector<int> boundaryVertices;
-
-// 	OpenMesh::SmartHalfedgeHandle firstBoundaryHalfedge;
-
-// 	for (auto heh : mesh.halfedges())
-// 		if (mesh.is_boundary(heh))
-// 		{
-// 			firstBoundaryHalfedge = heh;
-// 			break;
-// 		}
-
-// 	// OpenMesh Doc: If you are on a boundary, the next halfedge is guaranteed to be also a boundary halfedge.
-// 	for (auto heh = firstBoundaryHalfedge; heh.is_valid(); heh = mesh.next_halfedge_handle(heh))
-// 	{
-// 		boundaryVertices.push_back(mesh.to_vertex_handle(heh).idx());
-// 		if (mesh.to_vertex_handle(heh) == mesh.from_vertex_handle(firstBoundaryHalfedge))
-// 			break;
-// 	}
-
-// 	return boundaryVertices;
-// }
 
 struct SVD22
 {
@@ -102,195 +37,37 @@ struct SVD22
 		V = Eigen::Rotation2Dd(theta).toRotationMatrix().transpose();
 		S << S1, 0.0, 0.0, S2;
 	}
+
+	Eigen::Matrix2d bestFitARAP()
+	{
+		return U * V.transpose();
+	}
+
+	Eigen::Matrix2d bestFitASAP()
+	{
+		double meanS = (S(0, 0) + S(1, 1)) / 2;
+		Eigen::Matrix2d S;
+		S << meanS, 0.0, 0.0, meanS;
+		return U * S * V.transpose();
+	}
 };
 
-Eigen::Matrix2d bestFitARAP(Eigen::Matrix2d &J)
-{
-	SVD22 svd(J);
-	return svd.U * svd.V.transpose();
-}
-
-Eigen::Matrix2d bestFitASAP(Eigen::Matrix2d &J)
-{
-	SVD22 svd(J);
-	double meanS = (svd.S(0, 0) + svd.S(1, 1)) / 2;
-	Eigen::Matrix2d S;
-	S << meanS, 0.0, 0.0, meanS;
-	return svd.U * S * svd.V.transpose();
-}
-
-// // Tutte Parameterization with given laplacian matrix
-// Eigen::MatrixX2d tutteParameterization(const Mesh &mesh, Eigen::SparseMatrix<double> const &laplacian)
+// Eigen::Matrix2d bestFitARAP(Eigen::Matrix2d &J)
 // {
-// 	int numVertices = mesh.numVertices();
-// 	std::vector<int> boundary = boundaryVertices(mesh);
-
-// 	// Fix the boundary vertices to the unit circle
-// 	Eigen::MatrixX2d b(numVertices, 2);
-// 	b.setZero();
-// 	for (int i = 0; i < boundary.size(); i++)
-// 	{
-// 		b(boundary[i], 0) = cos(2 * M_PI * i / boundary.size());
-// 		b(boundary[i], 1) = sin(2 * M_PI * i / boundary.size());
-// 	}
-
-// 	// Construct the matrix A for the linear system Ax = b
-// 	std::vector<Triplet> triplets;
-// 	triplets.reserve(laplacian.nonZeros());
-
-// 	// Add the boundary constraints
-// 	for (int i = 0; i < boundary.size(); i++)
-// 		triplets.push_back(Triplet(boundary[i], boundary[i], 1.0));
-
-// 	// Extract triplets from the laplacian matrix
-// 	std::sort(boundary.begin(), boundary.end());
-// 	for (int k = 0; k < laplacian.outerSize(); ++k)
-// 	{
-// 		// Skip the rows of boundary vertices
-// 		// Assume that the matrix is symmetric
-// 		if (std::binary_search(boundary.begin(), boundary.end(), k))
-// 			continue;
-
-// 		for (Eigen::SparseMatrix<double>::InnerIterator it(laplacian, k); it; ++it)
-// 		{
-// 			// Add the triplet to the list
-// 			if (laplacian.Flags & Eigen::RowMajorBit)
-// 				triplets.push_back(Triplet(it.row(), it.col(), it.value())); // Row major
-// 			else
-// 				triplets.push_back(Triplet(it.col(), it.row(), it.value())); // Column major
-// 		}
-// 	}
-
-// 	// Construct the sparse matrix A
-// 	Eigen::SparseMatrix<double> A(numVertices, numVertices);
-// 	A.setFromTriplets(triplets.begin(), triplets.end());
-
-// 	// Solve the linear system
-// 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
-// 	solver.compute(A);
-// 	Eigen::MatrixX2d U = solver.solve(b);
-
-// 	return U;
+// 	SVD22 svd(J);
+// 	return svd.U * svd.V.transpose();
 // }
 
-// Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter, LocalGlobalTarget target)
+// Eigen::Matrix2d bestFitASAP(Eigen::Matrix2d &J)
 // {
-// 	TickTock tt("Tutte Parameterization");
-// 	// Compute the cotangent Laplacian matrix
-// 	Eigen::SparseMatrix<double> laplacian = cotLaplacian(mesh);
-
-// 	// Initial guess
-// 	Eigen::MatrixX2d U = tutteParameterization(mesh, laplacian);
-
-// 	tt.tockAndTick("Local Global Parameterization");
-
-// 	// Precompute the solver
-// 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
-// 	solver.compute(laplacian);
-
-// 	// Directly flattern the faces to the 2D plane
-// 	std::vector<Eigen::Matrix2d> triangleXs(mesh.numFaces());
-// 	for (auto f : mesh.faces())
-// 	{
-// 		auto heh = mesh.halfedge_handle(f);
-// 		auto v0 = mesh.from_vertex_handle(heh),
-// 			 v1 = mesh.to_vertex_handle(heh),
-// 			 v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh));
-
-// 		auto x0 = mesh.point(v0),
-// 			 x1 = mesh.point(v1),
-// 			 x2 = mesh.point(v2);
-
-// 		Eigen::Vector2d e01, e02;
-// 		double theta = acos((x1 - x0).normalized().dot((x2 - x0).normalized()));
-// 		e01 << (x1 - x0).norm(), 0;
-// 		e02 = (x2 - x0).norm() * Eigen::Vector2d(cos(theta), sin(theta));
-
-// 		// Use row vectors
-// 		triangleXs[f.idx()] << e01(0), e01(1),
-// 			e02(0), e02(1);
-// 	}
-
-// 	// Pre compute the cotangent weights
-// 	std::vector<double> cotWeights(mesh.numHalfEdges(), 0.0);
-// 	for (auto heh : mesh.halfedges())
-// 	{
-// 		if (heh.is_boundary() || !heh.is_valid())
-// 			continue;
-// 		cotWeights[heh.idx()] = 1.0 / tan(oppositeAngle(mesh, heh));
-// 	}
-
-// 	TickTock ttIt("Local-Global Iteration");
-
-// 	for (int iter = 1; iter <= numIter; iter++)
-// 	{
-// 		ttIt.tick();
-// 		std::cout << "Iteration " << iter << std::endl;
-
-// 		// Local step
-// 		TickTock ttLocal("Local Step");
-
-// 		Eigen::MatrixX2d rhs(mesh.numVertices(), 2);
-// 		rhs.setZero();
-
-// 		for (auto f : mesh.faces())
-// 		{
-// 			// Get the 2D triangle in the UV plane, from the last iteration
-// 			auto heh01 = mesh.halfedge_handle(f);
-// 			auto v0 = mesh.from_vertex_handle(heh01),
-// 				 v1 = mesh.to_vertex_handle(heh01),
-// 				 v2 = mesh.to_vertex_handle(mesh.next_halfedge_handle(heh01));
-
-// 			Eigen::Vector2d u0 = U.row(v0.idx()), u1 = U.row(v1.idx()), u2 = U.row(v2.idx());
-
-// 			auto e01 = u1 - u0, e02 = u2 - u0;
-
-// 			Eigen::Matrix2d triangleU;
-// 			triangleU << e01(0), e01(1),
-// 				e02(0), e02(1);
-
-// 			// Compute the best fit rotation from the Jacobi matrix
-// 			// x and u are row vectors, so x * J == u, J = x^-1 * u
-// 			Eigen::Matrix2d J = triangleXs[f.idx()].inverse() * triangleU;
-
-// 			Eigen::Matrix2d R;
-// 			switch (target)
-// 			{
-// 			case LocalGlobalTarget::ARAP:
-// 				R = bestFitARAP(J);
-// 				break;
-// 			case LocalGlobalTarget::ASAP:
-// 				R = bestFitASAP(J);
-// 				break;
-// 			}
-
-// 			// Compute the right hand side of the linear system
-// 			Eigen::Matrix<double, 1, 2> x0, x1, x2;
-// 			x0 << 0, 0;
-// 			x1 << triangleXs[f.idx()](0, 0), triangleXs[f.idx()](0, 1);
-// 			x2 << triangleXs[f.idx()](1, 0), triangleXs[f.idx()](1, 1);
-
-// 			auto heh12 = mesh.next_halfedge_handle(heh01);
-// 			auto heh20 = mesh.next_halfedge_handle(heh12);
-
-// 			rhs.block<1, 2>(v0.idx(), 0) += cotWeights[heh01.idx()] * ((x0 - x1) * R) + cotWeights[heh20.idx()] * ((x0 - x2) * R);
-// 			rhs.block<1, 2>(v1.idx(), 0) += cotWeights[heh12.idx()] * ((x1 - x2) * R) + cotWeights[heh01.idx()] * ((x1 - x0) * R);
-// 			rhs.block<1, 2>(v2.idx(), 0) += cotWeights[heh20.idx()] * ((x2 - x0) * R) + cotWeights[heh12.idx()] * ((x2 - x1) * R);
-// 		}
-// 		ttLocal.tock();
-
-// 		// Global step
-// 		U = solver.solve(rhs);
-
-// 		ttIt.tock();
-// 	}
-
-// 	tt.tock();
-
-// 	return U;
+// 	SVD22 svd(J);
+// 	double meanS = (svd.S(0, 0) + svd.S(1, 1)) / 2;
+// 	Eigen::Matrix2d S;
+// 	S << meanS, 0.0, 0.0, meanS;
+// 	return svd.U * S * svd.V.transpose();
 // }
 
-double TutteParameterization::oppositeAngle(Mesh::HalfedgeHandle heh) const
+double Tutte::oppositeAngle(Mesh::HalfedgeHandle heh) const
 {
 	auto p0 = mesh.point(mesh.from_vertex_handle(heh));
 	auto p1 = mesh.point(mesh.to_vertex_handle(heh));
@@ -299,7 +76,7 @@ double TutteParameterization::oppositeAngle(Mesh::HalfedgeHandle heh) const
 	return acos(((p1 - p2).normalized()).dot((p0 - p2).normalized()));
 }
 
-void TutteParameterization::computeCotangents()
+void Tutte::computeCotangents()
 {
 	cotangents.resize(mesh.numHalfEdges(), 0.0);
 
@@ -311,7 +88,7 @@ void TutteParameterization::computeCotangents()
 	}
 }
 
-void TutteParameterization::findBoundaryVertices()
+void Tutte::findBoundaryVertices()
 {
 	boundaryVertices.clear();
 
@@ -333,7 +110,7 @@ void TutteParameterization::findBoundaryVertices()
 	}
 }
 
-Eigen::SparseMatrix<double> TutteParameterization::laplacianUniform()
+Eigen::SparseMatrix<double> Tutte::laplacianUniform()
 {
 	std::vector<Triplet> triplets;
 	triplets.reserve(mesh.numHalfEdges() + mesh.numVertices());
@@ -352,7 +129,7 @@ Eigen::SparseMatrix<double> TutteParameterization::laplacianUniform()
 	return L;
 }
 
-Eigen::SparseMatrix<double> TutteParameterization::laplacianCotangent()
+Eigen::SparseMatrix<double> Tutte::laplacianCotangent()
 {
 	std::vector<Triplet> triplets;
 	triplets.reserve(mesh.numHalfEdges() * 4);
@@ -375,7 +152,7 @@ Eigen::SparseMatrix<double> TutteParameterization::laplacianCotangent()
 	return L;
 }
 
-void TutteParameterization::tutte()
+void Tutte::tutte()
 {
 	findBoundaryVertices();
 
@@ -443,12 +220,12 @@ void TutteParameterization::tutte()
 	uv = solver.solve(b);
 }
 
-void TutteParameterization::flatten()
+void Tutte::flatten()
 {
 	tutte();
 }
 
-void LocalGlobalParameterization::localGlobal()
+void LocalGlobal::localGlobal()
 {
 	// Initial guess
 	setLaplacianType(LaplacianType::COTANGENT);
@@ -481,15 +258,6 @@ void LocalGlobalParameterization::localGlobal()
 			e02(0), e02(1);
 	}
 
-	// Pre compute the cotangent weights
-	std::vector<double> cotWeights(mesh.numHalfEdges(), 0.0);
-	for (auto heh : mesh.halfedges())
-	{
-		if (heh.is_boundary() || !heh.is_valid())
-			continue;
-		cotWeights[heh.idx()] = 1.0 / tan(oppositeAngle(heh));
-	}
-
 	for (int iter = 1; iter <= numIter; iter++)
 	{
 		// Local step
@@ -520,10 +288,10 @@ void LocalGlobalParameterization::localGlobal()
 			switch (target)
 			{
 			case LocalGlobalTarget::ARAP:
-				R = bestFitARAP(J);
+				R = SVD22(J).bestFitARAP();
 				break;
 			case LocalGlobalTarget::ASAP:
-				R = bestFitASAP(J);
+				R = SVD22(J).bestFitASAP();
 				break;
 			}
 
@@ -536,9 +304,9 @@ void LocalGlobalParameterization::localGlobal()
 			auto heh12 = mesh.next_halfedge_handle(heh01);
 			auto heh20 = mesh.next_halfedge_handle(heh12);
 
-			rhs.block<1, 2>(v0.idx(), 0) += cotWeights[heh01.idx()] * ((x0 - x1) * R) + cotWeights[heh20.idx()] * ((x0 - x2) * R);
-			rhs.block<1, 2>(v1.idx(), 0) += cotWeights[heh12.idx()] * ((x1 - x2) * R) + cotWeights[heh01.idx()] * ((x1 - x0) * R);
-			rhs.block<1, 2>(v2.idx(), 0) += cotWeights[heh20.idx()] * ((x2 - x0) * R) + cotWeights[heh12.idx()] * ((x2 - x1) * R);
+			rhs.block<1, 2>(v0.idx(), 0) += cotangents[heh01.idx()] * ((x0 - x1) * R) + cotangents[heh20.idx()] * ((x0 - x2) * R);
+			rhs.block<1, 2>(v1.idx(), 0) += cotangents[heh12.idx()] * ((x1 - x2) * R) + cotangents[heh01.idx()] * ((x1 - x0) * R);
+			rhs.block<1, 2>(v2.idx(), 0) += cotangents[heh20.idx()] * ((x2 - x0) * R) + cotangents[heh12.idx()] * ((x2 - x1) * R);
 		}
 
 		// Global step
@@ -546,7 +314,9 @@ void LocalGlobalParameterization::localGlobal()
 	}
 }
 
-void LocalGlobalParameterization::flatten()
+void LocalGlobal::flatten()
 {
 	localGlobal();
 }
+
+#endif

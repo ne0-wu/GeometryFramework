@@ -66,6 +66,15 @@ glad_add_library(glad_gl_core_33 REPRODUCIBLE API gl:core=3.3)
 add_compile_definitions(_USE_MATH_DEFINES)
 add_compile_definitions(OM_STATIC_BUILD)
 
+# ==================================================
+# Compile definitions for Geometry Processing
+# Example: define IMPLEMENT_QEM to use Quadric Error Metrics
+# --------------------------------------------------
+# add_compile_definitions(IMPLEMENT_QEM)
+# add_compile_definitions(IMPLEMENT_PSR)
+# add_compile_definitions(IMPLEMENT_LGP)
+# ==================================================
+
 # Include directories
 include_directories(include)
 include_directories(3rdparty/include)
