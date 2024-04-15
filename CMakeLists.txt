@@ -18,7 +18,6 @@ FetchContent_Declare(
 	GIT_TAG			3.4
 )
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 
 # Dear ImGui
 FetchContent_Declare(
@@ -63,6 +62,7 @@ target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/
 
 glad_add_library(glad_gl_core_33 REPRODUCIBLE API gl:core=3.3)
 
+# Compile definitions for OpenMesh
 add_compile_definitions(_USE_MATH_DEFINES)
 add_compile_definitions(OM_STATIC_BUILD)
 
@@ -70,12 +70,9 @@ add_compile_definitions(OM_STATIC_BUILD)
 include_directories(include)
 include_directories(3rdparty/include)
 
-# Find source files
+# Compile the source files
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
-
 add_library(GeometryFw STATIC ${SOURCE_FILES})
-
-# Link the libraries
 target_link_libraries(GeometryFw PUBLIC
 	${OPENGL_LIBRARIES}	# OpenGL libraries
 	glad_gl_core_33		# GLAD library for loading OpenGL functions

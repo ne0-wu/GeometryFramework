@@ -6,49 +6,70 @@
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);
 
-enum class LocalGlobalTarget
+class TutteParameterization
 {
-    ARAP,
-    ASAP
+public:
+	enum class LaplacianType
+	{
+		UNIFORM,
+		COTANGENT
+	};
+
+	TutteParameterization(Mesh const &mesh) : mesh(mesh) {}
+
+	void setLaplacianType(LaplacianType type)
+	{
+		laplacianType = type;
+	}
+
+	void flatten();
+
+	Eigen::MatrixX2d getUV() const { return uv; }
+
+protected:
+	Mesh const &mesh;	 // input mesh
+	Eigen::MatrixX2d uv; // output uv coordinates
+
+	// Reusable variables
+	std::vector<double> cotangents;
+	std::vector<Mesh::VertexHandle> boundaryVertices;
+
+	// Tutte parameterization
+	void tutte(Eigen::SparseMatrix<double> const &laplacian);
+
+	LaplacianType laplacianType = LaplacianType::COTANGENT;
+	Eigen::SparseMatrix<double> laplacianUniform();
+	Eigen::SparseMatrix<double> laplacianCotangent();
+
+	Eigen::SparseMatrix<double> laplacian;
+
+	// Opposite angle of a halfedge
+	double oppositeAngle(Mesh::HalfedgeHandle heh) const;
+
+	// Pre-compute cotangent
+	void computeCotangents();
+
+	// Find boundary vertices
+	void findBoundaryVertices();
+
+	void tutte();
 };
 
-Eigen::MatrixX2d localGlobalParameterization(Mesh &mesh, int numIter = 100, LocalGlobalTarget target = LocalGlobalTarget::ARAP);
-
-class Parameterization
+class LocalGlobalParameterization : public TutteParameterization
 {
-public:
-    enum class LaplacianType
-    {
-        UNIFORM,
-        COTANGENT
-    };
-
-private:
-    Mesh const &mesh;    // input mesh
-    Eigen::MatrixX2d uv; // output uv coordinates
-
-    // Tutte parameterization
-    void tutte(Eigen::SparseMatrix<double> const &laplacian);
-
-    LaplacianType laplacianType = LaplacianType::UNIFORM;
-    Eigen::SparseMatrix<double> laplacianUniform();
-    Eigen::SparseMatrix<double> laplacianCotangent();
-
-    Eigen::SparseMatrix<double> laplacian;
-
-    // Pre-compute cotangent
-    std::vector<double> cotangents;
-    void computeCotangents();
+protected:
+	void localGlobal();
 
 public:
-    Parameterization(Mesh const &mesh) : mesh(mesh) {}
+	enum class LocalGlobalTarget
+	{
+		ARAP,
+		ASAP
+	} target;
+	int numIter;
 
-    void setLaplacianType(LaplacianType type)
-    {
-        laplacianType = type;
-    }
+	LocalGlobalParameterization(Mesh const &mesh, LocalGlobalTarget target = LocalGlobalTarget::ARAP, int numIter = 10)
+		: TutteParameterization(mesh), target(target), numIter(numIter) {}
 
-    void flatten();
-
-    Eigen::MatrixX2d getUV() const { return uv; }
+	void flatten();
 };
