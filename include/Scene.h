@@ -41,13 +41,13 @@ struct Camera
 // 	float near = 0.1f;
 // 	float far = 100.0f;
 // 	float aspect = 2.0f;
+// 	controlType type = FPS;
 // } defaultCamera;
 
 class Scene
 {
 private:
 	float lastFrameTime = 0.0f;
-	Camera camera = defaultCamera;
 
 	struct
 	{
@@ -55,9 +55,10 @@ private:
 	} initialState;
 
 public:
-	// GLFWwindow *window;
-	// std::vector<Mesh> meshes;
+	GLFWwindow *window;
 
+	// std::vector<Mesh> meshes;
+	Camera camera = defaultCamera;
 	std::vector<GLMesh> glMeshes;
 
 	Scene()
@@ -111,105 +112,91 @@ public:
 		this->camera = camera;
 	}
 
-	// void processInput()
-	// {
-	// 	// Control + S to save the current mesh
-	// 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-	// 	{
-	// 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS && initialState.KEYBOARD_S_STATE == GLFW_RELEASE)
-	// 		{
-	// 			saveFrame("output.png");
-	// 			initialState.KEYBOARD_S_STATE = GLFW_PRESS;
-	// 		}
-	// 		// skip camera control
-	// 		return;
-	// 	}
-	// 	initialState.KEYBOARD_S_STATE = glfwGetKey(window, GLFW_KEY_S);
+	void processInput()
+	{
+		// Camera control
+		float currentFrameTime = glfwGetTime();
+		float deltaTime = currentFrameTime - lastFrameTime;
+		lastFrameTime = currentFrameTime;
 
-	// 	// Camera control
-	// 	float currentFrameTime = glfwGetTime();
-	// 	float deltaTime = currentFrameTime - lastFrameTime;
-	// 	lastFrameTime = currentFrameTime;
+		float cameraSpeed;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			cameraSpeed = 10.0f * deltaTime;
+		else
+			cameraSpeed = 3.0f * deltaTime;
 
-	// 	float cameraSpeed;
-	// 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-	// 		cameraSpeed = 10.0f * deltaTime;
-	// 	else
-	// 		cameraSpeed = 3.0f * deltaTime;
+		float rotationSpeed = deltaTime;
 
-	// 	float rotationSpeed = deltaTime;
+		switch (camera.type)
+		{
+		case controlType::FPS:
+			// WASD to move the camera forward, left, backward, right
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				camera.position += cameraSpeed * camera.direction.normalized();
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				camera.position -= cameraSpeed * camera.direction.normalized();
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				camera.position += cameraSpeed * camera.direction.cross(camera.up).normalized();
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				camera.position -= cameraSpeed * camera.direction.cross(camera.up).normalized();
+			if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+				camera.position += cameraSpeed * camera.up.normalized();
+			if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+				camera.position -= cameraSpeed * camera.up.normalized();
 
-	// 	switch (camera.type)
-	// 	{
-	// 	case controlType::FPS:
-	// 		// WASD to move the camera forward, left, backward, right
-	// 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-	// 			camera.position += cameraSpeed * camera.direction.normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-	// 			camera.position -= cameraSpeed * camera.direction.normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-	// 			camera.position += cameraSpeed * camera.direction.cross(camera.up).normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-	// 			camera.position -= cameraSpeed * camera.direction.cross(camera.up).normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-	// 			camera.position += cameraSpeed * camera.up.normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-	// 			camera.position -= cameraSpeed * camera.up.normalized();
+			// Arrow keys to rotate the camera
+			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+				camera.direction = (camera.direction * cos(rotationSpeed) + camera.up * sin(rotationSpeed)).normalized();
+			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				camera.direction = (camera.direction * cos(rotationSpeed) - camera.up * sin(rotationSpeed)).normalized();
+			if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+				camera.direction = (camera.direction * cos(rotationSpeed) + camera.direction.cross(camera.up) * sin(rotationSpeed)).normalized();
+			if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+				camera.direction = (camera.direction * cos(rotationSpeed) - camera.direction.cross(camera.up) * sin(rotationSpeed)).normalized();
 
-	// 		// Arrow keys to rotate the camera
-	// 		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-	// 			camera.direction = (camera.direction * cos(rotationSpeed) + camera.up * sin(rotationSpeed)).normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-	// 			camera.direction = (camera.direction * cos(rotationSpeed) - camera.up * sin(rotationSpeed)).normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-	// 			camera.direction = (camera.direction * cos(rotationSpeed) + camera.direction.cross(camera.up) * sin(rotationSpeed)).normalized();
-	// 		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-	// 			camera.direction = (camera.direction * cos(rotationSpeed) - camera.direction.cross(camera.up) * sin(rotationSpeed)).normalized();
+			break;
+		case controlType::ORBIT:
+			float radius = camera.position.norm();
+			float theta = atan2(camera.position.y(), camera.position.x());
+			float phi = acos(camera.position.z() / radius);
 
-	// 		break;
-	// 	case controlType::ORBIT:
-	// 		float radius = camera.position.norm();
-	// 		float theta = atan2(camera.position.y(), camera.position.x());
-	// 		float phi = acos(camera.position.z() / radius);
+			// WASD to move the camera north (up), west (left), south (down), east (right)
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				phi += cameraSpeed;
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				phi -= cameraSpeed;
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				theta -= cameraSpeed;
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				theta += cameraSpeed;
 
-	// 		// WASD to move the camera north (up), west (left), south (down), east (right)
-	// 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-	// 			phi += cameraSpeed;
-	// 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-	// 			phi -= cameraSpeed;
-	// 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-	// 			theta -= cameraSpeed;
-	// 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-	// 			theta += cameraSpeed;
+			// Arrow keys to zoom in and out
+			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+				radius -= cameraSpeed;
+			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				radius += cameraSpeed;
 
-	// 		// Arrow keys to zoom in and out
-	// 		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-	// 			radius -= cameraSpeed;
-	// 		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-	// 			radius += cameraSpeed;
+			phi = std::max(0.2f, std::min(phi, 3.14f - 0.2f));
+			theta = fmod(theta, 2 * 3.14159f);
+			camera.position.x() = radius * sin(phi) * cos(theta);
+			camera.position.y() = radius * sin(phi) * sin(theta);
+			camera.position.z() = radius * cos(phi);
+			camera.direction = -camera.position.normalized();
 
-	// 		phi = std::max(0.2f, std::min(phi, 3.14f - 0.2f));
-	// 		theta = fmod(theta, 2 * 3.14159f);
-	// 		camera.position.x() = radius * sin(phi) * cos(theta);
-	// 		camera.position.y() = radius * sin(phi) * sin(theta);
-	// 		camera.position.z() = radius * cos(phi);
-	// 		camera.direction = -camera.position.normalized();
+			break;
+		}
 
-	// 		break;
-	// 	}
+		// Reset camera to default position
+		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+			camera = defaultCamera;
 
-	// 	// Reset camera to default position
-	// 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-	// 		camera = defaultCamera;
-
-	// 	// Press Esc to close the window
-	// 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	// 		glfwSetWindowShouldClose(window, true);
-	// }
+		// Press Esc to close the window
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+			glfwSetWindowShouldClose(window, true);
+	}
 
 	void draw()
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (auto &glMesh : glMeshes)
 		{

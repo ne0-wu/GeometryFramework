@@ -4,12 +4,15 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+#include <glad/gl.h>
+
+#include "Scene.h"
+
 class Window
 {
-protected:
+public:
 	GLFWwindow *window;
 
-public:
 	Window(int width = 1280, int height = 720, const char *title = "Window")
 	{
 		setup_GLFW(width, height, title);

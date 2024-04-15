@@ -49,31 +49,6 @@ private:
 public:
 	unsigned int numVertices, numFaces;
 
-	// GLMesh()
-	// {
-	// 	// a rectangle by default
-	// 	std::vector<GLfloat> vertexList = {
-	// 		0.5f, 0.5f, 0.0f,	// Top right
-	// 		0.5f, -0.5f, 0.0f,	// Bottom right
-	// 		-0.5f, -0.5f, 0.0f, // Bottom left
-	// 		-0.5f, 0.5f, 0.0f	// Top left
-	// 	};
-	// 	std::vector<GLuint> faceList = {
-	// 		0, 1, 3, // First triangle
-	// 		1, 2, 3	 // Second triangle
-	// 	};
-	// 	numVertices = 3;
-	// 	numFaces = 2;
-	// 	initializeMeshBuffers(vertexList, faceList);
-	// }
-
-	// GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
-	// {
-	// 	numVertices = vertexList.size() / 3;
-	// 	numFaces = faceList.size() / 3;
-	// 	initializeMeshBuffers(vertexList, faceList);
-	// }
-
 	GLMesh(Mesh &mesh) : mesh(mesh)
 	{
 		update();
@@ -82,6 +57,7 @@ public:
 
 	void update()
 	{
+		// TODO: update when mesh changes
 		numVertices = mesh.numVertices();
 		numFaces = mesh.numFaces();
 		initializeMeshBuffers(mesh.vertexListFloat(), mesh.faceList());
@@ -99,7 +75,6 @@ public:
 	void draw()
 	{
 		glBindVertexArray(VAO);
-		// glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
 
 		// Wireframe mode
 		int vertexColorLocation = glGetUniformLocation(getShaderID(), "color");
@@ -108,19 +83,15 @@ public:
 		glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
 		glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glEnable(GL_MULTISAMPLE);
+		glLineWidth(2.0f);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
 		glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
+		glDisable(GL_MULTISAMPLE);
 
 		glBindVertexArray(0);
 	}
-
-	// void setMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
-	// {
-	// 	numVertices = vertexList.size() / 3;
-	// 	numFaces = faceList.size() / 3;
-	// 	initializeMeshBuffers(vertexList, faceList);
-	// }
 
 	int getShaderID()
 	{
