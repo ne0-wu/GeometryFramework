@@ -451,13 +451,14 @@ void TutteParameterization::flatten()
 void LocalGlobalParameterization::localGlobal()
 {
 	// Initial guess
-	tutte();
+	setLaplacianType(LaplacianType::COTANGENT);
+	tutte(); // also computes the cotangents and the laplacian
 
 	// Precompute the solver
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 	solver.compute(laplacian);
 
-	// Directly flattern the faces to the 2D plane
+	// Directly flatten the faces to the 2D plane
 	std::vector<Eigen::Matrix2d> triangleXs(mesh.numFaces());
 	for (auto f : mesh.faces())
 	{
@@ -491,11 +492,7 @@ void LocalGlobalParameterization::localGlobal()
 
 	for (int iter = 1; iter <= numIter; iter++)
 	{
-		std::cout << "Iteration " << iter << std::endl;
-
 		// Local step
-		TickTock ttLocal("Local Step");
-
 		Eigen::MatrixX2d rhs(mesh.numVertices(), 2);
 		rhs.setZero();
 

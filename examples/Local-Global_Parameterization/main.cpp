@@ -8,15 +8,13 @@
 
 #include "GeometryProcessing.h"
 
-Mesh para2Mesh(const Mesh &mesh, Eigen::MatrixX2d uv)
+void flattenMesh(Mesh &mesh, Eigen::MatrixX2d uv)
 {
-	Mesh mesh2d = mesh;
-	for (auto v : mesh2d.vertices())
+	for (auto v : mesh.vertices())
 	{
 		auto uv2d = uv.row(v.idx());
-		mesh2d.set_point(v, Mesh::Point(uv2d(0), uv2d(1), 0));
+		mesh.set_point(v, Mesh::Point(uv2d(0), uv2d(1), 0));
 	}
-	return mesh2d;
 }
 
 int main()
@@ -26,8 +24,8 @@ int main()
 	Mesh mesh("meshes/camelhead.obj");
 	mesh.fitIntoUnitBall();
 
-	auto tutte = LocalGlobalParameterization(mesh);
-	tutte.flatten();
+	auto localGlobal = LocalGlobalParameterization(mesh);
+	localGlobal.flatten();
 
 	std::cout << mesh.numVertices() << " vertices, "
 			  << mesh.numEdges() << " edges, "
@@ -37,11 +35,18 @@ int main()
 	Scene scene;
 	scene.window = window.window;
 
-	scene.addMesh(GLMesh(para2Mesh(mesh, tutte.getUV())));
+	auto mesh2d = mesh;
+	flattenMesh(mesh2d, localGlobal.getUV());
+	mesh2d.moveCenterToOrigin();
+
+	scene.addMesh(GLMesh(mesh2d));
 
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glEnable(GL_DEPTH_TEST);
+
+	// GUI states
+	int numIter = 0;
 
 	while (!window.shouldClose())
 	{
@@ -59,19 +64,28 @@ int main()
 		{
 			ImGui::Begin("Local-Global Parameterization");
 
-			int iterations = 0;
-			ImGui::SliderInt("Iterations", &iterations, 1, 100);
+			ImGui::SliderInt("Iterations", &numIter, 1, 100);
 
 			ImGui::End();
 		}
 
 		ImGui::Render();
 
+		scene.update();
 		scene.draw();
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		window.swapBuffers();
+
+		if (numIter != localGlobal.getNumIter())
+		{
+			localGlobal.setNumIter(numIter);
+			localGlobal.flatten();
+			flattenMesh(mesh2d, localGlobal.getUV());
+			mesh2d.moveCenterToOrigin();
+			scene.glMeshes[0].shouldUpdate = true;
+		}
 	}
 
 	return 0;

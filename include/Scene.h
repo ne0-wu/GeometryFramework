@@ -197,7 +197,6 @@ public:
 
 	void draw()
 	{
-
 		for (auto &glMesh : glMeshes)
 		{
 			glMesh.bindShader();
@@ -214,7 +213,13 @@ public:
 		}
 	}
 
-	void update();
+	void update()
+	{
+		for (auto &glMesh : glMeshes)
+		{
+			glMesh.update();
+		}
+	}
 
 	void addMesh(GLMesh &glMesh)
 	{

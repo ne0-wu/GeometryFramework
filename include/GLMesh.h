@@ -48,6 +48,7 @@ private:
 
 public:
 	unsigned int numVertices, numFaces;
+	bool shouldUpdate = false;
 
 	GLMesh(Mesh &mesh) : mesh(mesh)
 	{
@@ -57,10 +58,14 @@ public:
 
 	void update()
 	{
-		// TODO: update when mesh changes
-		numVertices = mesh.numVertices();
-		numFaces = mesh.numFaces();
-		initializeMeshBuffers(mesh.vertexListFloat(), mesh.faceList());
+		if (shouldUpdate)
+		{
+			numVertices = mesh.numVertices();
+			numFaces = mesh.numFaces();
+			initializeMeshBuffers(mesh.vertexListFloat(), mesh.faceList());
+		}
+
+		shouldUpdate = false;
 	}
 
 	void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
