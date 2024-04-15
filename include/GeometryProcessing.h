@@ -1,12 +1,45 @@
+#pragma once
+
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
 #include "Mesh.h"
 #include "PointCloud.h"
 
-// #define IMPLEMENT_QEM
-#define IMPLEMENT_LGP
+#define IMPLEMENT_QEM
+// #define IMPLEMENT_LGP
 // #define IMPLEMENT_PSR
+
+struct QEM
+{
+	Mesh::HalfedgeHandle heh;
+	Mesh::Point optimalPlacement;
+	double error;
+
+	bool operator<(const QEM &rhs) const
+	{
+		return error < rhs.error;
+	}
+};
+
+class QEMSimplification
+{
+public:
+	QEMSimplification(Mesh &mesh) : mesh(mesh) {}
+
+	void simplify(int targetNumVertices);
+
+private:
+	Mesh mesh;
+
+	std::vector<Eigen::Matrix4d> Qs; // Quadric error matrices
+	std::vector<QEM> QEMs;			 // Quadric error on each edge
+
+	Eigen::Matrix4d quadricErrorMatrix(Mesh::VertexHandle v);
+	QEM optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q);
+
+	void collapse1Edge();
+};
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);
 
