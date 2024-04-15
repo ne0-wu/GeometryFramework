@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Shader.h"
+#include "Mesh.h"
 
 #include <glad/gl.h>
 
@@ -12,6 +13,8 @@ class GLMesh
 private:
 	GLuint VAO, VBO, EBO;
 	Shader shaderProgram;
+
+	Mesh &mesh;
 
 	void initializeMeshBuffers(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
 	{
@@ -46,29 +49,42 @@ private:
 public:
 	unsigned int numVertices, numFaces;
 
-	GLMesh()
+	// GLMesh()
+	// {
+	// 	// a rectangle by default
+	// 	std::vector<GLfloat> vertexList = {
+	// 		0.5f, 0.5f, 0.0f,	// Top right
+	// 		0.5f, -0.5f, 0.0f,	// Bottom right
+	// 		-0.5f, -0.5f, 0.0f, // Bottom left
+	// 		-0.5f, 0.5f, 0.0f	// Top left
+	// 	};
+	// 	std::vector<GLuint> faceList = {
+	// 		0, 1, 3, // First triangle
+	// 		1, 2, 3	 // Second triangle
+	// 	};
+	// 	numVertices = 3;
+	// 	numFaces = 2;
+	// 	initializeMeshBuffers(vertexList, faceList);
+	// }
+
+	// GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
+	// {
+	// 	numVertices = vertexList.size() / 3;
+	// 	numFaces = faceList.size() / 3;
+	// 	initializeMeshBuffers(vertexList, faceList);
+	// }
+
+	GLMesh(Mesh &mesh) : mesh(mesh)
 	{
-		// a rectangle by default
-		std::vector<GLfloat> vertexList = {
-			0.5f, 0.5f, 0.0f,	// Top right
-			0.5f, -0.5f, 0.0f,	// Bottom right
-			-0.5f, -0.5f, 0.0f, // Bottom left
-			-0.5f, 0.5f, 0.0f	// Top left
-		};
-		std::vector<GLuint> faceList = {
-			0, 1, 3, // First triangle
-			1, 2, 3	 // Second triangle
-		};
-		numVertices = 3;
-		numFaces = 2;
-		initializeMeshBuffers(vertexList, faceList);
+		update();
+		initializeShader("shaders/basic.vert", "shaders/basic.frag");
 	}
 
-	GLMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
+	void update()
 	{
-		numVertices = vertexList.size() / 3;
-		numFaces = faceList.size() / 3;
-		initializeMeshBuffers(vertexList, faceList);
+		numVertices = mesh.numVertices();
+		numFaces = mesh.numFaces();
+		initializeMeshBuffers(mesh.vertexListFloat(), mesh.faceList());
 	}
 
 	void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
@@ -83,16 +99,28 @@ public:
 	void draw()
 	{
 		glBindVertexArray(VAO);
+		// glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
+
+		// Wireframe mode
+		int vertexColorLocation = glGetUniformLocation(getShaderID(), "color");
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
 		glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
+		glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
+
 		glBindVertexArray(0);
 	}
 
-	void setMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
-	{
-		numVertices = vertexList.size() / 3;
-		numFaces = faceList.size() / 3;
-		initializeMeshBuffers(vertexList, faceList);
-	}
+	// void setMesh(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
+	// {
+	// 	numVertices = vertexList.size() / 3;
+	// 	numFaces = faceList.size() / 3;
+	// 	initializeMeshBuffers(vertexList, faceList);
+	// }
 
 	int getShaderID()
 	{

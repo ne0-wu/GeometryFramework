@@ -10,7 +10,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include "GLMesh.h"
+// #include "GLMesh.h"
 
 struct MyTraits : public OpenMesh::DefaultTraits
 {
@@ -27,7 +27,7 @@ struct MyTraits : public OpenMesh::DefaultTraits
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
 {
 private:
-	GLMesh glmesh;
+	// GLMesh glmesh;
 
 public:
 	Mesh(const std::string &filename);
@@ -49,31 +49,31 @@ public:
 
 	// Render
 	// ------
-	void initializeGLMesh() { glmesh = GLMesh(vertexListFloat(), faceList()); }
+	// void initializeGLMesh() { glmesh = GLMesh(vertexListFloat(), faceList()); }
 
-	void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
-	{
-		glmesh.initializeShader(vertexShaderSource, fragmentShaderSource, fromFile);
-	}
+	// void initializeShader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource, bool fromFile = true)
+	// {
+	// 	glmesh.initializeShader(vertexShaderSource, fragmentShaderSource, fromFile);
+	// }
 
-	int getShaderID() { return glmesh.getShaderID(); }
+	// int getShaderID() { return glmesh.getShaderID(); }
 
-	void bindShader() { glmesh.bindShader(); }
+	// void bindShader() { glmesh.bindShader(); }
 
-	void draw()
-	{
-		glmesh.setMesh(vertexListFloat(), faceList());
+	// void draw()
+	// {
+	// 	glmesh.setMesh(vertexListFloat(), faceList());
 
-		int vertexColorLocation = glGetUniformLocation(getShaderID(), "color");
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
-		glmesh.draw();
+	// 	int vertexColorLocation = glGetUniformLocation(getShaderID(), "color");
+	// 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	// 	glUniform4f(vertexColorLocation, 1.0f, 1.0f, 1.0f, 1.0f);
+	// 	glmesh.draw();
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glLineWidth(2.0f);
-		glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-		glmesh.draw();
-	}
+	// 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// 	glLineWidth(2.0f);
+	// 	glUniform4f(vertexColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
+	// 	glmesh.draw();
+	// }
 
 	// Geometry information
 	// --------------------
