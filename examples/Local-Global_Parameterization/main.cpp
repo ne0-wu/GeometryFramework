@@ -48,8 +48,6 @@ int main()
 	// GUI states
 	int numIter = 0;
 
-	glfwWindowHint(GLFW_SAMPLES, 4);
-
 	while (!window.shouldClose())
 	{
 		window.pollEvents();
