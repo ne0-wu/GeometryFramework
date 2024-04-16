@@ -8,6 +8,8 @@
 #include "Mesh.h"
 #include "GeometryProcessing.h"
 
+#ifdef IMPLEMENT_QEM
+
 Eigen::Matrix4d QEMSimplification::quadricErrorMatrix(Mesh::VertexHandle v)
 {
 	Eigen::Matrix4d Q = Eigen::Matrix4d::Zero();
@@ -109,3 +111,5 @@ void QEMSimplification::simplify(int targetNumVertices)
 
 	mesh.garbage_collection();
 }
+
+#endif

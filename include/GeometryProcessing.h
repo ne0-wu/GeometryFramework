@@ -9,8 +9,8 @@
 #include "PointCloud.h"
 
 #define IMPLEMENT_QEM
-// #define IMPLEMENT_LGP
-// #define IMPLEMENT_PSR
+#define IMPLEMENT_LGP
+#define IMPLEMENT_PSR
 
 struct QEM
 {
