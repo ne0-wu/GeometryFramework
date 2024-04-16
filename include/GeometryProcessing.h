@@ -128,10 +128,19 @@ protected:
 class CubicStylization
 {
 public:
-	CubicStylization(Mesh &mesh);
+	CubicStylization(Mesh &mesh, double lambda, int numIter);
 
 private:
-	Mesh &mesh;
+	Mesh mesh;
+	double lambda;
+	int numIter;
 
-	void cubicStylization();
+	OpenMesh::VProp<double> barycentric_area;
+	OpenMesh::VProp<Eigen::Matrix3d> Rs;
+
+	Eigen::MatrixX3d V;
+
+	void local();
+	void global();
+	void iteration();
 };
