@@ -9,37 +9,8 @@
 #include "PointCloud.h"
 
 #define IMPLEMENT_QEM
-#define IMPLEMENT_LGP
-#define IMPLEMENT_PSR
-
-struct QEM
-{
-	Mesh::HalfedgeHandle heh;
-	Mesh::Point optimalPlacement;
-	double error = std::numeric_limits<double>::infinity();
-
-	bool operator<(const QEM &rhs) const
-	{
-		if (error < 0 && rhs.error < 0)
-			return error < rhs.error;
-		if (error < 0)
-			return false;
-		if (rhs.error < 0)
-			return true;
-		return error < rhs.error;
-	}
-};
-
-class QemTraits : public OpenMesh::DefaultTraits
-{
-	typedef Eigen::Vector3d Point;
-	typedef Eigen::Vector3d Normal;
-	typedef Eigen::Vector2d TexCoord2D;
-
-	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
-	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
-	EdgeAttributes(OpenMesh::Attributes::Status);
-};
+// #define IMPLEMENT_LGP
+// #define IMPLEMENT_PSR
 
 class QEMSimplification
 {
@@ -50,10 +21,20 @@ public:
 	Mesh &getMesh() { return mesh; };
 
 private:
-	Mesh mesh;
+	struct QEM
+	{
+		Mesh::HalfedgeHandle heh;
+		Mesh::Point optimalPlacement;
+		double error = std::numeric_limits<double>::infinity();
 
-	OpenMesh::VProp<Eigen::Matrix4d> Qs = OpenMesh::VProp<Eigen::Matrix4d>(mesh); // Quadric error matrices
-	OpenMesh::EProp<QEM> QEMs = OpenMesh::EProp<QEM>(mesh);						  // Quadric error on each edge
+		bool operator<(const QEM &rhs) const { return error < rhs.error; }
+	};
+
+	Mesh mesh; // The mesh to simplify
+
+	// Store reusable variables as mesh properties
+	OpenMesh::VProp<Eigen::Matrix4d> Qs; // Quadric error matrices
+	OpenMesh::EProp<QEM> QEMs;			 // Quadric error on each edge
 
 	Eigen::Matrix4d quadricErrorMatrix(Mesh::VertexHandle v);
 	QEM optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q);
@@ -142,4 +123,15 @@ protected:
 	LocalGlobalTarget target;
 
 	void localGlobal();
+};
+
+class CubicStylization
+{
+public:
+	CubicStylization(Mesh &mesh);
+
+private:
+	Mesh &mesh;
+
+	void cubicStylization();
 };

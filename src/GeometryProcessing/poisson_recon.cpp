@@ -1,4 +1,4 @@
-﻿// This file implements the Poisson Surface Reconstruction (PSR) algorithm.
+﻿// This file contains the implementation of the Poisson Surface Reconstruction algorithm.
 
 #include <random>
 #include <queue>

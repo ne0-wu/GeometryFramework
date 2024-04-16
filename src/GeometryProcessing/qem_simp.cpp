@@ -1,4 +1,4 @@
-// This file implements the Quadric Error Metrics (QEM) simplification algorithm.
+// This file contains the implementation of the Quadric Error Metrics (QEM) simplification algorithm.
 
 #include <vector>
 #include <set>
@@ -27,7 +27,7 @@ Eigen::Matrix4d QEMSimplification::quadricErrorMatrix(Mesh::VertexHandle v)
 	return Q;
 }
 
-QEM QEMSimplification::optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q)
+QEMSimplification::QEM QEMSimplification::optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q)
 {
 	Eigen::Matrix4d A = Q;
 	A.block<1, 3>(3, 0) = Eigen::Vector3d(0, 0, 0).transpose();
@@ -49,7 +49,7 @@ QEM QEMSimplification::optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix
 		return {edge, mid, errorMid};
 }
 
-QEMSimplification::QEMSimplification(Mesh &input_mesh) : mesh(input_mesh)
+QEMSimplification::QEMSimplification(Mesh &input_mesh) : mesh(input_mesh), Qs(mesh), QEMs(mesh)
 {
 	// Needs vertex/edge/face status attribute in order to delete the items that degenerate.
 	mesh.request_vertex_status();
@@ -61,9 +61,11 @@ QEMSimplification::QEMSimplification(Mesh &input_mesh) : mesh(input_mesh)
 	mesh.request_face_normals();
 	mesh.update_face_normals();
 
+	// Compute quadric error matrices
 	for (auto v : mesh.vertices())
 		Qs[v] = quadricErrorMatrix(v);
 
+	// Compute quadric error on each edge
 	for (auto eh : mesh.edges())
 	{
 		if (!mesh.is_collapse_ok(eh.halfedge()))

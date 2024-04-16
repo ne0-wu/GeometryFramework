@@ -1,4 +1,4 @@
-// This file implements the Local-Global Parameterization algorithm.
+// This file contains the implementation of the Local-Global Parameterization algorithm.
 
 #include <Eigen/Sparse>
 
