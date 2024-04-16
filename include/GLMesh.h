@@ -14,7 +14,8 @@ private:
 	GLuint VAO, VBO, EBO;
 	Shader shaderProgram;
 
-	Mesh &mesh;
+	// Mesh &mesh;
+	std::shared_ptr<Mesh> meshPtr;
 
 	void initializeMeshBuffers(const std::vector<GLfloat> &vertexList, const std::vector<GLuint> &faceList)
 	{
@@ -50,19 +51,27 @@ public:
 	unsigned int numVertices, numFaces;
 	bool shouldUpdate = false;
 
-	GLMesh(Mesh &mesh) : mesh(mesh)
+	GLMesh(Mesh &mesh)
 	{
+		meshPtr = std::make_shared<Mesh>(mesh);
 		update();
+
 		initializeShader("shaders/basic.vert", "shaders/basic.frag");
+	}
+
+	void setMesh(std::shared_ptr<Mesh> meshPtr2)
+	{
+		meshPtr = meshPtr2;
+		shouldUpdate = true;
 	}
 
 	void update()
 	{
 		if (shouldUpdate)
 		{
-			numVertices = mesh.numVertices();
-			numFaces = mesh.numFaces();
-			initializeMeshBuffers(mesh.vertexListFloat(), mesh.faceList());
+			numVertices = meshPtr->numVertices();
+			numFaces = meshPtr->numFaces();
+			initializeMeshBuffers(meshPtr->vertexListFloat(), meshPtr->faceList());
 		}
 
 		shouldUpdate = false;
