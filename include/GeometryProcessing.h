@@ -3,6 +3,8 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
+#include <OpenMesh/Core/Utils/PropertyManager.hh>
+
 #include "Mesh.h"
 #include "PointCloud.h"
 
@@ -14,26 +16,44 @@ struct QEM
 {
 	Mesh::HalfedgeHandle heh;
 	Mesh::Point optimalPlacement;
-	double error;
+	double error = std::numeric_limits<double>::infinity();
 
 	bool operator<(const QEM &rhs) const
 	{
+		if (error < 0 && rhs.error < 0)
+			return error < rhs.error;
+		if (error < 0)
+			return false;
+		if (rhs.error < 0)
+			return true;
 		return error < rhs.error;
 	}
+};
+
+class QemTraits : public OpenMesh::DefaultTraits
+{
+	typedef Eigen::Vector3d Point;
+	typedef Eigen::Vector3d Normal;
+	typedef Eigen::Vector2d TexCoord2D;
+
+	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
+	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
+	EdgeAttributes(OpenMesh::Attributes::Status);
 };
 
 class QEMSimplification
 {
 public:
-	QEMSimplification(Mesh &mesh) : mesh(mesh) {}
+	QEMSimplification(Mesh &mesh);
 
 	void simplify(int targetNumVertices);
+	Mesh &getMesh() { return mesh; };
 
 private:
 	Mesh mesh;
 
-	std::vector<Eigen::Matrix4d> Qs; // Quadric error matrices
-	std::vector<QEM> QEMs;			 // Quadric error on each edge
+	OpenMesh::VProp<Eigen::Matrix4d> Qs = OpenMesh::VProp<Eigen::Matrix4d>(mesh); // Quadric error matrices
+	OpenMesh::EProp<QEM> QEMs = OpenMesh::EProp<QEM>(mesh);						  // Quadric error on each edge
 
 	Eigen::Matrix4d quadricErrorMatrix(Mesh::VertexHandle v);
 	QEM optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q);

@@ -18,7 +18,7 @@ struct MyTraits : public OpenMesh::DefaultTraits
 	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
 	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
 	EdgeAttributes(OpenMesh::Attributes::Status);
-	HalfedgeAttributes(OpenMesh::Attributes::Status);
+	// HalfedgeAttributes(OpenMesh::Attributes::Status);
 };
 
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
