@@ -18,7 +18,6 @@ struct MyTraits : public OpenMesh::DefaultTraits
 	VertexAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
 	FaceAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
 	EdgeAttributes(OpenMesh::Attributes::Status);
-	// HalfedgeAttributes(OpenMesh::Attributes::Status);
 };
 
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
@@ -58,6 +57,7 @@ public:
 
 	// Boundary
 	// --------
+	// TODO: Need to consider the case of multiple boundary components
 	std::vector<Mesh::VertexHandle> boundaryVertices();
 
 	// Basic geometry transformations
@@ -71,11 +71,4 @@ public:
 	void fitInto(double minX, double minY, double minZ, double maxX, double maxY, double maxZ);
 	void fitIntoUnitCube();
 	void fitIntoUnitBall();
-
-	// Mesh simplification
-	// -------------------
-	bool simplifyQEM(int targetNumVertices);
-	Eigen::Matrix4d quadricErrorMatrix(VertexHandle v);
-	std::pair<double, Point> optimalPlacement(HalfedgeHandle edge, const Eigen::Matrix4d &Q);
-	void collapseEdge(HalfedgeHandle edge, Point contractedPosition);
 };
