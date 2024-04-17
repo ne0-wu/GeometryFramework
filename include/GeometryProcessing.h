@@ -137,6 +137,7 @@ private:
 
 	OpenMesh::VProp<double> barycentric_area;
 	OpenMesh::VProp<Eigen::Matrix3d> Rs;
+	OpenMesh::HProp<double> cotangents;
 
 	Eigen::MatrixX3d V;
 
