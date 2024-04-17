@@ -2,9 +2,10 @@
 
 #include "GeometryProcessing.h"
 
-CubicStylization::CubicStylization(Mesh &input_mesh, double lambda = 0.1, int numIter)
+CubicStylization::CubicStylization(Mesh &input_mesh, double lambda = 0.1, int numIter = 100)
 	: mesh(input_mesh), lambda(lambda), numIter(numIter),
-	  barycentric_area(mesh), Rs(mesh), cotangents(mesh)
+	  barycentric_area(mesh), Rs(mesh), cotangents(mesh),
+	  laplacian(mesh.n_vertices(), mesh.n_vertices()), rhs(mesh.n_vertices(), 3), V(mesh.n_vertices(), 3)
 {
 	// Request and comput normals
 	mesh.request_face_normals();
@@ -21,20 +22,31 @@ CubicStylization::CubicStylization(Mesh &input_mesh, double lambda = 0.1, int nu
 		for (auto f : mesh.vf_range(v))
 			area += face_area(f);
 		barycentric_area[v] = area;
-		V.row(v.idx()) = mesh.point(v); // Initialize V
+		V.row(v.idx()) = mesh.point(v); // Initialize V as identical to input mesh
 	}
 
-	// Compute cotangents
+	// Compute cotangents and laplacian
+	std::vector<Eigen::Triplet<double>> triplets;
+	triplets.reserve(mesh.n_halfedges() * 4);
 	for (auto he : mesh.halfedges())
 	{
 		if (he.is_boundary())
 			continue;
 
-		auto p0 = mesh.point(he.from()),
-			 p1 = mesh.point(he.to()),
-			 p2 = mesh.point(he.next().to());
-		cotangents[he] = 1.0 / tan(acos((p0 - p2).normalized().dot((p1 - p2).normalized())));
+		auto fr = mesh.point(he.from()),
+			 to = mesh.point(he.to()),
+			 op = mesh.point(he.next().to());
+		double cot_op = 1.0 / tan(acos((fr - op).normalized().dot((to - op).normalized())));
+
+		cotangents[he] = cot_op;
+
+		triplets.push_back(Eigen::Triplet<double>(he.to().idx(), he.to().idx(), cot_op));
+		triplets.push_back(Eigen::Triplet<double>(he.from().idx(), he.from().idx(), cot_op));
+		triplets.push_back(Eigen::Triplet<double>(he.to().idx(), he.from().idx(), -cot_op));
+		triplets.push_back(Eigen::Triplet<double>(he.from().idx(), he.to().idx(), -cot_op));
 	}
+	laplacian.setFromTriplets(triplets.begin(), triplets.end());
+	laplacian_solver.compute(laplacian);
 }
 
 void CubicStylization::local()
@@ -51,6 +63,11 @@ void CubicStylization::local()
 		Eigen::Vector3d normal = mesh.normal(vi);
 		int deg = vi.valence();
 		double ai = barycentric_area(vi);
+		Eigen::MatrixXd A(3, 9); // the matrix A in the ADMM constraint
+		A.setZero();
+		A.block<1, 3>(0, 0) = normal.transpose();
+		A.block<1, 3>(1, 3) = normal.transpose();
+		A.block<1, 3>(2, 6) = normal.transpose();
 
 		Eigen::Matrix3d R;
 		// R.setIdentity();
@@ -72,7 +89,7 @@ void CubicStylization::local()
 		// }
 
 		double rho = 1e-4;
-		Eigen::Vector3d z, u;
+		Eigen::Vector3d z, z_prev, u;
 		u.setZero();
 		z = mesh.normal(vi);
 
@@ -81,17 +98,20 @@ void CubicStylization::local()
 		// In every iteration, the last column of D_tilde and the last element of Mi_diag are updated
 		Eigen::Matrix3Xd D(3, deg + 1),
 			D_tilde(3, deg + 1);
-		Eigen::MatrixXd Mi_diag(deg + 1);
+		Eigen::MatrixXd Mi_diag(deg + 1, deg + 1);
+		Mi_diag.setZero();
 		int j = 0;
 		for (auto heh : mesh.voh_range(vi))
 		{
 			auto vj = mesh.to_vertex_handle(heh);
 			D.col(j) = mesh.point(vj) - mesh.point(vi);
 			D_tilde.col(j) = V.row(vj.idx()) - V.row(vi.idx());
-			Mi_diag(j, j) = (cotangents[heh] + cotangents[heh.opp()]) / 2;
+			Mi_diag(j, j) = (cotangents[heh] + cotangents[heh.opp()]);
+			j++;
 		}
 		D.col(deg) = mesh.normal(vi);
 
+		// Find the optimal R with ADMM
 		for (int numIter = 0; numIter < 100; numIter++)
 		{
 			// Update R
@@ -99,9 +119,13 @@ void CubicStylization::local()
 			D_tilde.col(deg) = z - u;
 			Eigen::Matrix3d Mi = D * Mi_diag * D_tilde.transpose();
 			Eigen::JacobiSVD svd(Mi, Eigen::ComputeFullU | Eigen::ComputeFullV);
-			R = svd.matrixV() * svd.matrixU().transpose();
+			Eigen::Matrix3d U = svd.matrixU(), V = svd.matrixV();
+			if ((V * U.transpose()).determinant() < 0)
+				U.col(2) *= -1;
+			R = V * U.transpose();
 
 			// Update z
+			z_prev = z;
 			Eigen::Vector3d x = R * normal + u;
 			double k = lambda * ai / rho;
 			for (int j : {0, 1, 2})
@@ -110,14 +134,73 @@ void CubicStylization::local()
 				coe = coe > 0 ? coe : 0;
 				z(j) = coe * x(j);
 			}
+			std::cout << z.transpose() << std::endl;
 
 			// Update u
-			u = u + R * normal - z;
+			u += R * normal - z;
 
 			// Update rho
-			Eigen::Vector3d r, s; // primal and dual residuals
-			r = R * normal - z;
-			// TODO: compute the dual residual
+			// Eigen::VectorXd r(3), s(9); // primal and dual residuals
+			// r = R * normal - z;
+			// s = A.transpose() * (z - z_prev);
+			double r = (R * normal - z).norm(),
+				   s = (A.transpose() * (z - z_prev)).norm();
+
+			if (r > mu * s)
+			{
+				rho *= tau_incr;
+				u /= tau_incr;
+			}
+			else if (s > mu * r)
+			{
+				rho /= tau_decr;
+				u *= tau_decr;
+			}
+
+			// Stop condition
+			if (r < eps_abs && s < eps_rel)
+			{
+				break;
+			}
 		}
+
+		Rs[vi] = R;
 	}
+}
+
+void CubicStylization::global()
+{
+	rhs.setZero();
+	for (auto vi : mesh.vertices())
+		for (auto he : mesh.voh_range(vi))
+		{
+			auto vj = he.to();
+			double wij = cotangents[he] + cotangents[he.opp()];
+			Eigen::Matrix3d R = (Rs[vi] + Rs[vj]) / 2;
+			rhs.row(vi.idx()) += wij * R * (mesh.point(vi) - mesh.point(vj));
+		}
+
+	V = laplacian_solver.solve(rhs);
+}
+
+void CubicStylization::local_global()
+{
+	for (int i = 1; i < numIter; i++)
+	{
+		local();
+		global();
+	}
+}
+
+void CubicStylization::stylize()
+{
+	local_global();
+}
+
+Mesh CubicStylization::get_stylized_mesh()
+{
+	Mesh stylized_mesh = mesh;
+	for (auto vi : mesh.vertices())
+		stylized_mesh.set_point(vi, V.row(vi.idx()).transpose());
+	return stylized_mesh;
 }

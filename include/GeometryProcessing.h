@@ -8,7 +8,7 @@
 #include "Mesh.h"
 #include "PointCloud.h"
 
-#define IMPLEMENT_QEM
+// #define IMPLEMENT_QEM
 // #define IMPLEMENT_LGP
 // #define IMPLEMENT_PSR
 
@@ -130,8 +130,11 @@ class CubicStylization
 public:
 	CubicStylization(Mesh &mesh, double lambda, int numIter);
 
+	void stylize();
+	Mesh get_stylized_mesh();
+
 private:
-	Mesh mesh;
+	Mesh &mesh;
 	double lambda;
 	int numIter;
 
@@ -140,8 +143,11 @@ private:
 	OpenMesh::HProp<double> cotangents;
 
 	Eigen::MatrixX3d V;
+	Eigen::SparseMatrix<double> laplacian;
+	Eigen::SparseLU<Eigen::SparseMatrix<double>> laplacian_solver;
+	Eigen::MatrixX3d rhs;
 
 	void local();
 	void global();
-	void iteration();
+	void local_global();
 };
