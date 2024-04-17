@@ -128,7 +128,7 @@ protected:
 class CubicStylization
 {
 public:
-	CubicStylization(Mesh &mesh, double lambda, int numIter);
+	CubicStylization(Mesh &mesh, double lambda = 0.1, int numIter = 100);
 
 	void stylize();
 	Mesh get_stylized_mesh();

@@ -2,7 +2,7 @@
 
 #include "GeometryProcessing.h"
 
-CubicStylization::CubicStylization(Mesh &input_mesh, double lambda = 0.1, int numIter = 100)
+CubicStylization::CubicStylization(Mesh &input_mesh, double lambda, int numIter)
 	: mesh(input_mesh), lambda(lambda), numIter(numIter),
 	  barycentric_area(mesh), Rs(mesh), cotangents(mesh),
 	  laplacian(mesh.n_vertices(), mesh.n_vertices()), rhs(mesh.n_vertices(), 3), V(mesh.n_vertices(), 3)
