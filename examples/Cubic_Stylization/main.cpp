@@ -7,7 +7,7 @@
 
 int main()
 {
-    Mesh mesh("meshes/cathead.obj");
+    Mesh mesh("meshes/spot_quadrangulated.obj");
 
     CubicStylization cubic_style(mesh, 0.5, 100);
     cubic_style.stylize();

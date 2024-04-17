@@ -63,30 +63,16 @@ void CubicStylization::local()
 		Eigen::Vector3d normal = mesh.normal(vi);
 		int deg = vi.valence();
 		double ai = barycentric_area(vi);
-		Eigen::MatrixXd A(3, 9); // the matrix A in the ADMM constraint
+
+		// The matrix A in the ADMM constraint Ax + Bz = c,
+		// where x is R flattened, and B = I, c = 0.
+		Eigen::MatrixXd A(3, 9);
 		A.setZero();
 		A.block<1, 3>(0, 0) = normal.transpose();
 		A.block<1, 3>(1, 3) = normal.transpose();
 		A.block<1, 3>(2, 6) = normal.transpose();
 
 		Eigen::Matrix3d R;
-		// R.setIdentity();
-		// {
-		// 	Eigen::Matrix3Xd D(3, vi.valence()),
-		// 		D_tilde(3, vi.valence());
-		// 	int j = 0;
-		// 	for (auto heh : mesh.voh_range(vi))
-		// 	{
-		// 		auto vj = mesh.to_vertex_handle(heh);
-		// 		D.col(j) = mesh.point(vj) - mesh.point(vi);
-		// 		D_tilde.col(j) = V.row(vj.idx()) - V.row(vi.idx());
-		// 		j++;
-		// 	}
-		// 	// Solve for J * D * D^T == D_tilde * D^T
-		// 	Eigen::Matrix3d J = ((D.transpose()).colPivHouseholderQr().solve(D_tilde.transpose())).transpose();
-		// 	Eigen::JacobiSVD<Eigen::Matrix3d> svd(J, Eigen::ComputeFullU | Eigen::ComputeFullV);
-		// 	R = svd.matrixU() * svd.matrixV().transpose();
-		// }
 
 		double rho = 1e-4;
 		Eigen::Vector3d z, z_prev, u;
@@ -120,6 +106,7 @@ void CubicStylization::local()
 			Eigen::Matrix3d Mi = D * Mi_diag * D_tilde.transpose();
 			Eigen::JacobiSVD svd(Mi, Eigen::ComputeFullU | Eigen::ComputeFullV);
 			Eigen::Matrix3d U = svd.matrixU(), V = svd.matrixV();
+			// Flip a row of U so that R is positively oriented
 			if ((V * U.transpose()).determinant() < 0)
 				U.col(2) *= -1;
 			R = V * U.transpose();
@@ -134,34 +121,22 @@ void CubicStylization::local()
 				coe = coe > 0 ? coe : 0;
 				z(j) = coe * x(j);
 			}
-			std::cout << z.transpose() << std::endl;
 
 			// Update u
 			u += R * normal - z;
 
 			// Update rho
-			// Eigen::VectorXd r(3), s(9); // primal and dual residuals
-			// r = R * normal - z;
-			// s = A.transpose() * (z - z_prev);
-			double r = (R * normal - z).norm(),
-				   s = (A.transpose() * (z - z_prev)).norm();
+			double r = (R * normal - z).norm(),			   // Primal residual
+				s = (A.transpose() * (z - z_prev)).norm(); // Dual residual
 
 			if (r > mu * s)
-			{
-				rho *= tau_incr;
-				u /= tau_incr;
-			}
+				rho *= tau_incr, u /= tau_incr;
 			else if (s > mu * r)
-			{
-				rho /= tau_decr;
-				u *= tau_decr;
-			}
+				rho /= tau_decr, u *= tau_decr;
 
 			// Stop condition
 			if (r < eps_abs && s < eps_rel)
-			{
 				break;
-			}
 		}
 
 		Rs[vi] = R;
