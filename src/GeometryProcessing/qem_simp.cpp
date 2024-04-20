@@ -8,7 +8,7 @@
 #include "Mesh.h"
 #include "GeometryProcessing.h"
 
-#ifdef IMPLEMENT_QEM
+#ifdef IMPLEMENT_QEM_SIMPLIFICATION
 
 Eigen::Matrix4d QEMSimplification::quadricErrorMatrix(Mesh::VertexHandle v)
 {
@@ -93,7 +93,9 @@ void QEMSimplification::collapse1Edge()
 	mesh.collapse(minQem.heh); // removes the 'from' vertex of the halfedge
 
 	// update affected faces
-	mesh.update_face_normals();
+	// mesh.update_face_normals();
+	for (auto voh : mesh.voh_range(vh2))
+		mesh.update_normal(voh.face());
 
 	// update affected vertices
 	for (auto voh : mesh.voh_range(vh2))

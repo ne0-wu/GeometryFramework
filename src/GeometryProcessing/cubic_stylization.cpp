@@ -2,6 +2,8 @@
 
 #include "GeometryProcessing.h"
 
+#ifdef IMPLEMENT_CUBIC_STYLIZATION
+
 CubicStylization::CubicStylization(Mesh &input_mesh, double lambda, int numIter)
 	: mesh(input_mesh), lambda(lambda), numIter(numIter),
 	  barycentric_area(mesh), Rs(mesh), cotangents(mesh),
@@ -104,7 +106,7 @@ void CubicStylization::local()
 			Mi_diag(deg, deg) = rho;
 			D_tilde.col(deg) = z - u;
 			Eigen::Matrix3d Mi = D * Mi_diag * D_tilde.transpose();
-			Eigen::JacobiSVD svd(Mi, Eigen::ComputeFullU | Eigen::ComputeFullV);
+			Eigen::JacobiSVD<Eigen::Matrix3d> svd(Mi, Eigen::ComputeFullU | Eigen::ComputeFullV);
 			Eigen::Matrix3d U = svd.matrixU(), V = svd.matrixV();
 			// Flip a row of U so that R is positively oriented
 			if ((V * U.transpose()).determinant() < 0)
@@ -179,3 +181,5 @@ Mesh CubicStylization::get_stylized_mesh()
 		stylized_mesh.set_point(vi, V.row(vi.idx()).transpose());
 	return stylized_mesh;
 }
+
+#endif

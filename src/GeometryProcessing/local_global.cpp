@@ -5,7 +5,7 @@
 #include "GeometryProcessing.h"
 #include "Utils/TickTock.h"
 
-#ifdef IMPLEMENT_LGP
+#ifdef IMPLEMENT_LOCAL_GLOBAL_PARA
 
 typedef Eigen::Triplet<double> Triplet;
 

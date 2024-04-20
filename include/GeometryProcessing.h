@@ -8,9 +8,10 @@
 #include "Mesh.h"
 #include "PointCloud.h"
 
-// #define IMPLEMENT_QEM
-// #define IMPLEMENT_LGP
-// #define IMPLEMENT_PSR
+#define IMPLEMENT_QEM_SIMPLIFICATION
+// #define IMPLEMENT_LOCAL_GLOBAL_PARA
+// #define IMPLEMENT_POISSON_RECON
+#define IMPLEMENT_CUBIC_STYLIZATION
 
 class QEMSimplification
 {

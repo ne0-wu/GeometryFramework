@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 
 project(GeometryFramework)
 
@@ -70,11 +70,11 @@ add_compile_definitions(OM_STATIC_BUILD)
 
 # ==================================================
 # Compile definitions for Geometry Processing
-# Example: define IMPLEMENT_QEM to use Quadric Error Metrics
+# Example: define IMPLEMENT_QEM_SIMPLIFICATION to use Quadric Error Metrics
 # --------------------------------------------------
-# add_compile_definitions(IMPLEMENT_QEM)
-# add_compile_definitions(IMPLEMENT_PSR)
-# add_compile_definitions(IMPLEMENT_LGP)
+# add_compile_definitions(IMPLEMENT_QEM_SIMPLIFICATION)
+# add_compile_definitions(IMPLEMENT_POISSON_RECON)
+# add_compile_definitions(IMPLEMENT_LOCAL_GLOBAL_PARA)
 # ==================================================
 
 # Include directories

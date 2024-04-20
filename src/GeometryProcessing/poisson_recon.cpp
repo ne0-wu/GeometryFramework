@@ -14,7 +14,7 @@
 
 #include "GeometryProcessing.h"
 
-#ifdef IMPLEMENT_PSR
+#ifdef IMPLEMENT_POISSON_RECON
 
 // Utils
 
