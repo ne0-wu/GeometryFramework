@@ -36,7 +36,7 @@ int main()
 	scene.window = window.window;
 
 	auto mesh2d = mesh;
-	flattenMesh(mesh2d, localGlobal.getUV());
+	flattenMesh(mesh2d, localGlobal.get_uv());
 	mesh2d.moveCenterToOrigin();
 
 	scene.addMesh(GLMesh(mesh2d));
@@ -75,11 +75,11 @@ int main()
 
 		window.swapBuffers();
 
-		if (numIter != localGlobal.getNumIter())
+		if (numIter != localGlobal.get_num_iter())
 		{
-			localGlobal.setNumIter(numIter);
+			localGlobal.set_num_iter(numIter);
 			localGlobal.flatten();
-			flattenMesh(mesh2d, localGlobal.getUV());
+			flattenMesh(mesh2d, localGlobal.get_uv());
 			mesh2d.fitIntoUnitBall();
 			scene.glMeshes[0].shouldUpdate = true;
 		}

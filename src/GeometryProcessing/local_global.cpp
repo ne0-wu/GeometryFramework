@@ -67,7 +67,7 @@ struct SVD22
 // 	return svd.U * S * svd.V.transpose();
 // }
 
-double Tutte::oppositeAngle(Mesh::HalfedgeHandle heh) const
+double Tutte::opposite_angle(Mesh::HalfedgeHandle heh) const
 {
 	auto p0 = mesh.point(mesh.from_vertex_handle(heh));
 	auto p1 = mesh.point(mesh.to_vertex_handle(heh));
@@ -76,7 +76,7 @@ double Tutte::oppositeAngle(Mesh::HalfedgeHandle heh) const
 	return acos(((p1 - p2).normalized()).dot((p0 - p2).normalized()));
 }
 
-void Tutte::computeCotangents()
+void Tutte::compute_cot()
 {
 	cotangents.resize(mesh.numHalfEdges(), 0.0);
 
@@ -84,13 +84,13 @@ void Tutte::computeCotangents()
 	{
 		if (heh.is_boundary() || !heh.is_valid())
 			continue;
-		cotangents[heh.idx()] = 1.0 / tan(oppositeAngle(heh));
+		cotangents[heh.idx()] = 1.0 / tan(opposite_angle(heh));
 	}
 }
 
-void Tutte::findBoundaryVertices()
+void Tutte::find_boundary_vertices()
 {
-	boundaryVertices.clear();
+	boundary_vertices.clear();
 
 	Mesh::HalfedgeHandle firstBoundaryHalfedge;
 
@@ -104,13 +104,13 @@ void Tutte::findBoundaryVertices()
 	// OpenMesh Doc: If you are on a boundary, the next halfedge is guaranteed to be also a boundary halfedge.
 	for (auto heh = firstBoundaryHalfedge; heh.is_valid(); heh = mesh.next_halfedge_handle(heh))
 	{
-		boundaryVertices.push_back(mesh.to_vertex_handle(heh));
+		boundary_vertices.push_back(mesh.to_vertex_handle(heh));
 		if (mesh.to_vertex_handle(heh) == mesh.from_vertex_handle(firstBoundaryHalfedge))
 			break;
 	}
 }
 
-Eigen::SparseMatrix<double> Tutte::laplacianUniform()
+Eigen::SparseMatrix<double> Tutte::laplacian_uniform()
 {
 	std::vector<Triplet> triplets;
 	triplets.reserve(mesh.numHalfEdges() + mesh.numVertices());
@@ -129,7 +129,7 @@ Eigen::SparseMatrix<double> Tutte::laplacianUniform()
 	return L;
 }
 
-Eigen::SparseMatrix<double> Tutte::laplacianCotangent()
+Eigen::SparseMatrix<double> Tutte::laplacian_cotangent()
 {
 	std::vector<Triplet> triplets;
 	triplets.reserve(mesh.numHalfEdges() * 4);
@@ -154,16 +154,16 @@ Eigen::SparseMatrix<double> Tutte::laplacianCotangent()
 
 void Tutte::tutte()
 {
-	findBoundaryVertices();
+	find_boundary_vertices();
 
 	switch (laplacianType)
 	{
 	case LaplacianType::UNIFORM:
-		laplacian = laplacianUniform();
+		laplacian = laplacian_uniform();
 		break;
 	case LaplacianType::COTANGENT:
-		computeCotangents();
-		laplacian = laplacianCotangent();
+		compute_cot();
+		laplacian = laplacian_cotangent();
 		break;
 	}
 
@@ -172,11 +172,11 @@ void Tutte::tutte()
 	// Fix the boundary vertices to the unit circle
 	Eigen::MatrixX2d b(numVertices, 2);
 	b.setZero();
-	for (int i = 0; i < boundaryVertices.size(); i++)
+	for (int i = 0; i < boundary_vertices.size(); i++)
 	{
-		int idx_vi = boundaryVertices[i].idx();
-		b(idx_vi, 0) = cos(2 * M_PI * i / boundaryVertices.size());
-		b(idx_vi, 1) = sin(2 * M_PI * i / boundaryVertices.size());
+		int idx_vi = boundary_vertices[i].idx();
+		b(idx_vi, 0) = cos(2 * M_PI * i / boundary_vertices.size());
+		b(idx_vi, 1) = sin(2 * M_PI * i / boundary_vertices.size());
 	}
 
 	// Construct the matrix A for the linear system Ax = b
@@ -184,13 +184,13 @@ void Tutte::tutte()
 	triplets.reserve(laplacian.nonZeros());
 
 	// Add the boundary constraints
-	for (int i = 0; i < boundaryVertices.size(); i++)
-		triplets.push_back(Triplet(boundaryVertices[i].idx(), boundaryVertices[i].idx(), 1.0));
+	for (int i = 0; i < boundary_vertices.size(); i++)
+		triplets.push_back(Triplet(boundary_vertices[i].idx(), boundary_vertices[i].idx(), 1.0));
 
 	// Extract triplets from the laplacian matrix
-	std::vector<int> boundaryVertexIndices(boundaryVertices.size());
-	for (int i = 0; i < boundaryVertices.size(); i++)
-		boundaryVertexIndices[i] = boundaryVertices[i].idx();
+	std::vector<int> boundaryVertexIndices(boundary_vertices.size());
+	for (int i = 0; i < boundary_vertices.size(); i++)
+		boundaryVertexIndices[i] = boundary_vertices[i].idx();
 	std::sort(boundaryVertexIndices.begin(), boundaryVertexIndices.end());
 	for (int k = 0; k < laplacian.outerSize(); ++k)
 	{
@@ -228,7 +228,7 @@ void Tutte::flatten()
 void LocalGlobal::localGlobal()
 {
 	// Initial guess
-	setLaplacianType(LaplacianType::COTANGENT);
+	set_laplacian_type(LaplacianType::COTANGENT);
 	tutte(); // also computes the cotangents and the laplacian
 
 	// Precompute the solver

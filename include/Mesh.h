@@ -58,7 +58,7 @@ public:
 	// Boundary
 	// --------
 	// TODO: Need to consider the case of multiple boundary components
-	std::vector<Mesh::VertexHandle> boundaryVertices();
+	std::vector<Mesh::VertexHandle> boundary_vertices();
 
 	// Basic geometry transformations
 	// ------------------------------

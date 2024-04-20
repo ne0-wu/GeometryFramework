@@ -49,7 +49,7 @@ class Parameterization
 public:
 	Parameterization(Mesh const &mesh) : mesh(mesh) {}
 	virtual void flatten() = 0;
-	Eigen::MatrixX2d getUV() { return uv; }
+	Eigen::MatrixX2d get_uv() { return uv; }
 
 protected:
 	Mesh const &mesh;	 // input mesh
@@ -68,7 +68,7 @@ public:
 	Tutte(Mesh const &mesh, LaplacianType laplacianType = LaplacianType::UNIFORM)
 		: Parameterization(mesh), laplacianType(laplacianType) {}
 
-	void setLaplacianType(LaplacianType type)
+	void set_laplacian_type(LaplacianType type)
 	{
 		laplacianType = type;
 	}
@@ -78,25 +78,25 @@ public:
 protected:
 	// Reusable variables
 	std::vector<double> cotangents;
-	std::vector<Mesh::VertexHandle> boundaryVertices;
+	std::vector<Mesh::VertexHandle> boundary_vertices;
 
 	// Tutte parameterization
 	void tutte(Eigen::SparseMatrix<double> const &laplacian);
 
 	LaplacianType laplacianType;
-	Eigen::SparseMatrix<double> laplacianUniform();
-	Eigen::SparseMatrix<double> laplacianCotangent();
+	Eigen::SparseMatrix<double> laplacian_uniform();
+	Eigen::SparseMatrix<double> laplacian_cotangent();
 
 	Eigen::SparseMatrix<double> laplacian;
 
 	// Opposite angle of a halfedge
-	double oppositeAngle(Mesh::HalfedgeHandle heh) const;
+	double opposite_angle(Mesh::HalfedgeHandle heh) const;
 
 	// Pre-compute cotangent
-	void computeCotangents();
+	void compute_cot();
 
 	// Find boundary vertices
-	void findBoundaryVertices();
+	void find_boundary_vertices();
 
 	void tutte();
 };
@@ -113,8 +113,8 @@ public:
 	LocalGlobal(Mesh const &mesh, LocalGlobalTarget target = LocalGlobalTarget::ARAP, int numIter = 100)
 		: Tutte(mesh), target(target), numIter(numIter) {}
 
-	void setNumIter(int numIter) { this->numIter = numIter; }
-	int getNumIter() { return numIter; }
+	void set_num_iter(int numIter) { this->numIter = numIter; }
+	int get_num_iter() { return numIter; }
 
 	void flatten();
 
@@ -150,4 +150,25 @@ private:
 	void local();
 	void global();
 	void local_global();
+};
+
+class GeodesicPath
+{
+public:
+	GeodesicPath(Mesh const &input_mesh);
+
+private:
+	Mesh mesh;					 // The mesh to compute geodesic path on
+	Mesh::VertexHandle src, tgt; // Source and target vertices
+
+	std::vector<Mesh::VertexHandle> path; // The geodesic path
+
+	// Dijkstra's algorithm
+	std::vector<Mesh::VertexHandle> dijkstra();
+
+	// Signpost data structure
+	OpenMesh::EProp<double> edge_length;
+	OpenMesh::HProp<double> angle;
+
+	// Intrinsic flip
 };
