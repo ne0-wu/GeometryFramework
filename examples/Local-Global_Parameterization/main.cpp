@@ -2,9 +2,9 @@
 #include <filesystem>
 #include <vector>
 
-#include "Scene.h"
+#include "Renderer/Scene.h"
 #include "Mesh.h"
-#include "Window.h"
+#include "Renderer/Window.h"
 
 #include "GeometryProcessing.h"
 

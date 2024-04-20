@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-#include "Shader.h"
+#include "Renderer/Shader.h"
 #include "Mesh.h"
 
 #include <glad/gl.h>

@@ -2,8 +2,8 @@
 #include <filesystem>
 #include <vector>
 
-#include "Scene.h"
-#include "Window.h"
+#include "Renderer/Scene.h"
+#include "Renderer/Window.h"
 
 #include "Mesh.h"
 #include "GeometryProcessing.h"

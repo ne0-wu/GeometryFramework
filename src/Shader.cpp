@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "Shader.h"
+#include "Renderer/Shader.h"
 
 Shader::Shader(const std::string &vertexShaderCode, const std::string &fragmentShaderCode, bool fromFile)
 {

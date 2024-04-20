@@ -155,7 +155,7 @@ private:
 class GeodesicPath
 {
 public:
-	GeodesicPath(Mesh const &input_mesh);
+	GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Mesh::VertexHandle target);
 
 private:
 	Mesh mesh;					 // The mesh to compute geodesic path on
@@ -164,11 +164,13 @@ private:
 	std::vector<Mesh::VertexHandle> path; // The geodesic path
 
 	// Dijkstra's algorithm
-	std::vector<Mesh::VertexHandle> dijkstra();
+	void dijkstra();
 
 	// Signpost data structure
 	OpenMesh::EProp<double> edge_length;
-	OpenMesh::HProp<double> angle;
+	OpenMesh::HProp<double> direction;
+	OpenMesh::VProp<double> angle_sum;
 
 	// Intrinsic flip
+	void intrinsic_flip(Mesh::EdgeHandle e);
 };

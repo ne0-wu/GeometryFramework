@@ -40,6 +40,8 @@ FetchContent_Declare(
 	GIT_REPOSITORY	https://www.graphics.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
 	GIT_TAG			OpenMesh-10.0
 )
+set(BUILD_APPS OFF CACHE BOOL "" FORCE)
+# set(OPENMESH_DOCS OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(
 	glfw

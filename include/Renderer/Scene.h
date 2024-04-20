@@ -6,8 +6,8 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include "GLMesh.h"
-#include "Shader.h"
+#include "Renderer/GLMesh.h"
+#include "Renderer/Shader.h"
 
 class GLFWwindow;
 

@@ -6,7 +6,7 @@
 
 #include <glad/gl.h>
 
-#include "Scene.h"
+#include "Renderer/Scene.h"
 
 class Window
 {

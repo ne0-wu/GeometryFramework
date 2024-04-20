@@ -40,6 +40,32 @@ public:
 
 	int numHalfEdges() const { return this->n_halfedges(); }
 
+	// Smart access to mesh elements
+	// -----------------------------
+	template <typename... Args>
+	OpenMesh::SmartVertexHandle smart_vertex_handle(Args &&...args)
+	{
+		return OpenMesh::make_smart(vertex_handle(std::forward<Args>(args)...), *this);
+	}
+
+	template <typename... Args>
+	OpenMesh::SmartHalfedgeHandle smart_halfedge_handle(Args &&...args)
+	{
+		return OpenMesh::make_smart(halfedge_handle(std::forward<Args>(args)...), *this);
+	}
+
+	template <typename... Args>
+	OpenMesh::SmartEdgeHandle smart_edge_handle(Args &&...args)
+	{
+		return OpenMesh::make_smart(edge_handle(std::forward<Args>(args)...), *this);
+	}
+
+	template <typename... Args>
+	OpenMesh::SmartFaceHandle smart_face_handle(Args &&...args)
+	{
+		return OpenMesh::make_smart(face_handle(std::forward<Args>(args)...), *this);
+	}
+
 	// Geometry information
 	// --------------------
 	Point boundingBoxMin();
