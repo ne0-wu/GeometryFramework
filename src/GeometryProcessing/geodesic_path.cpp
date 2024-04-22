@@ -11,14 +11,15 @@ GeodesicPath::GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Me
 		edge_length[e] = mesh.calc_edge_length(e);
 	for (auto v : mesh.vertices())
 	{
-		angle_sum[v] = 0;
-		for (auto h : mesh.voh_range(v))
+		double angle_sum_temp = 0.0;
+		for (auto h : mesh.voh_ccw_range(v)) // out-going halfedges around v in counter-clockwise order
 		{
-			direction[h] = angle_sum[v];
-			angle_sum[v] += mesh.calc_dihedral_angle(h);
+			direction[h] = angle_sum_temp;
+			angle_sum_temp += mesh.calc_dihedral_angle(h);
 		}
-		for (auto h : mesh.voh_range(v))
-			direction[h] *= 2 * M_PI / angle_sum[v];
+		for (auto h : mesh.voh_ccw_range(v))
+			direction[h] *= 2 * M_PI / angle_sum_temp;
+		angle_sum[v] = angle_sum_temp;
 	}
 
 	dijkstra();
@@ -46,15 +47,14 @@ void GeodesicPath::dijkstra()
 		auto [d, u] = pq.top();
 		pq.pop();
 
-		for (auto h : mesh.vih_range(u))
+		for (auto h : mesh.voh_range(u))
 		{
-			auto v = mesh.to_vertex_handle(h);
-			auto e = mesh.edge_handle(h);
-			auto w = edge_length[e];
+			auto v = h.to();
+			auto l = edge_length[h.edge()];
 
-			if (distance[u] + w < distance[v])
+			if (distance[u] + l < distance[v])
 			{
-				distance[v] = distance[u] + w;
+				distance[v] = distance[u] + l;
 				previous[v] = u;
 				pq.push({distance[v], v});
 			}
@@ -87,8 +87,29 @@ void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
 
 	// Edge lengths
 	double l01 = edge_length[e];
+	double l02 = edge_length[h0.next().edge()];
+	double l12 = edge_length[h0.prev().edge()];
+	double l13 = edge_length[h1.next().edge()];
+	double l03 = edge_length[h1.prev().edge()];
+	double ang0_12 = acos((l01 * l01 + l02 * l02 - l12 * l12) / (2 * l01 * l02));
+	double ang0_13 = acos((l01 * l01 + l03 * l03 - l13 * l13) / (2 * l01 * l03));
 
-	// Calculate the new edge length, on the 2D plane
+	// Flatten the two triangles
 	auto p0 = Eigen::Vector2d(0, 0);
 	auto p1 = Eigen::Vector2d(edge_length(e), 0);
+	auto p2 = l02 * Eigen::Vector2d(cos(ang0_12), -sin(ang0_12));
+	auto p3 = l03 * Eigen::Vector2d(cos(ang0_13), sin(ang0_13));
+
+	// Check if the flip is valid, i.e. the new edge crosses v0--v1
+	double x0 = (p2[1] * p3[0] - p2[0] * p3[1]) / (p2[1] - p3[0]);
+	assert(x0 > 0 && x0 < l01);
+
+	// Compute values for the new edge
+	double l23 = (p2 - p3).norm();
+	double ang2_13 = acos((l12 * l12 + l23 * l23 - l13 * l13) / (2 * l12 * l23));
+	double ang3_02 = acos((l03 * l03 + l23 * l23 - l02 * l02) / (2 * l03 * l23));
+
+	// Update the mesh
+	mesh.flip(e);
+	edge_length[e] = l23;
 }
