@@ -174,6 +174,8 @@ private:
 	OpenMesh::HProp<double> direction;
 	OpenMesh::VProp<double> angle_sum; // For updating direction
 
+	double angle(Mesh::HalfedgeHandle h) const;
+
 	void intrinsic_flip(Mesh::EdgeHandle e);
 
 	void flip_out(Mesh::HalfedgeHandle h0, Mesh::HalfedgeHandle h1);

@@ -25,6 +25,15 @@ GeodesicPath::GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Me
 	dijkstra(); // Initialize the path
 }
 
+// Returns the angle at the *from* vertex of the halfedge
+double GeodesicPath::angle(Mesh::HalfedgeHandle h) const
+{
+	double l0 = edge_length[mesh.edge_handle(h)],
+		   l1 = edge_length[mesh.edge_handle(mesh.next_halfedge_handle(h))],
+		   l2 = edge_length[mesh.edge_handle(mesh.prev_halfedge_handle(h))];
+	return acos((l0 * l0 + l2 * l2 - l1 * l1) / (2 * l0 * l2));
+}
+
 void GeodesicPath::dijkstra()
 {
 	OpenMesh::VProp<double> dist(mesh);
@@ -126,6 +135,25 @@ void GeodesicPath::flip_out(Mesh::HalfedgeHandle h0, Mesh::HalfedgeHandle h1)
 	assert(mesh.to_vertex_handle(h0) == mesh.from_vertex_handle(h1));
 
 	// TODO: FlipOut
+	// Find the first edge with beta < pi to flip
+	bool should_flip = false;
+	auto edge_to_flip = mesh.edge_handle(mesh.next_halfedge_handle(h0));
+	for (auto h = mesh.opposite_halfedge_handle(mesh.next_halfedge_handle(h0));
+		 mesh.opposite_halfedge_handle(h) != h1;
+		 h = mesh.opposite_halfedge_handle(mesh.next_halfedge_handle(h)))
+	{
+		double beta = angle(h) + angle(mesh.next_halfedge_handle(mesh.opposite_halfedge_handle(h)));
+		if (beta < M_PI)
+		{
+			should_flip = true;
+			edge_to_flip = mesh.edge_handle(h);
+			break;
+		}
+	}
+
+	if (should_flip)
+	{
+	}
 }
 
 void GeodesicPath::find_geodesic_path()
