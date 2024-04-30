@@ -53,6 +53,7 @@ void GeodesicPath::dijkstra()
 	for (auto v : mesh.vertices())
 		pq.push(v);
 
+	// TODO: fix dijstra
 	while (!pq.empty())
 	{
 		auto u = pq.top();
@@ -219,4 +220,13 @@ void GeodesicPath::find_geodesic_path()
 		// Flip the smallest wedge
 		flip_out(min_idx, left_hand_side);
 	}
+}
+
+double GeodesicPath::geodesic_distance()
+{
+	find_geodesic_path();
+	double dist = 0;
+	for (int i = 0; i < path.size() - 1; i++)
+		dist += edge_length[mesh.find_halfedge(path[i], path[i + 1]).edge()];
+	return dist;
 }

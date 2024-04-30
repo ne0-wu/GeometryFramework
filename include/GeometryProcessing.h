@@ -8,10 +8,10 @@
 #include "Mesh.h"
 #include "PointCloud.h"
 
-#define IMPLEMENT_QEM_SIMPLIFICATION
+// #define IMPLEMENT_QEM_SIMPLIFICATION
 // #define IMPLEMENT_LOCAL_GLOBAL_PARA
 // #define IMPLEMENT_POISSON_RECON
-#define IMPLEMENT_CUBIC_STYLIZATION
+// #define IMPLEMENT_CUBIC_STYLIZATION
 
 class QEMSimplification
 {
@@ -157,6 +157,7 @@ class GeodesicPath
 {
 public:
 	GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Mesh::VertexHandle target);
+	double geodesic_distance();
 
 private:
 	const Mesh &original_mesh;
