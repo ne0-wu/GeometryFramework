@@ -163,8 +163,8 @@ private:
 	Mesh mesh;					 // The mesh to compute geodesic path on
 	Mesh::VertexHandle src, tgt; // Source and target vertices
 
-	// std::vector<Mesh::VertexHandle> path; // The geodesic path
-	std::vector<Mesh::HalfedgeHandle> path; // The geodesic path
+	std::vector<Mesh::VertexHandle> path; // The geodesic path
+	// std::vector<Mesh::HalfedgeHandle> path; // The geodesic path
 
 	// Dijkstra's algorithm
 	void dijkstra();
@@ -178,7 +178,7 @@ private:
 
 	void intrinsic_flip(Mesh::EdgeHandle e);
 
-	void flip_out(Mesh::HalfedgeHandle h0, Mesh::HalfedgeHandle h1);
+	void flip_out(int i, bool left_hand_side);
 
 	void find_geodesic_path();
 };
