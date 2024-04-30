@@ -87,6 +87,7 @@ void GeodesicPath::dijkstra()
 	path.clear();
 	for (auto v = tgt; v != src; v = mesh.from_vertex_handle(prev[v]))
 		path.push_back(v);
+	path.push_back(src);
 	std::reverse(path.begin(), path.end());
 
 	std::cout << "Length of shortest path on edges (Dijkstra): " << dist[tgt] << std::endl;
