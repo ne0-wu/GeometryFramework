@@ -53,11 +53,13 @@ void GeodesicPath::dijkstra()
 	for (auto v : mesh.vertices())
 		pq.push(v);
 
-	// TODO: fix dijstra
 	while (!pq.empty())
 	{
 		auto u = pq.top();
 		pq.pop();
+
+		Mesh::VertexHandle min_v;
+		double min_dist = std::numeric_limits<double>::infinity();
 
 		for (auto h : mesh.voh_range(u))
 		{
@@ -67,8 +69,17 @@ void GeodesicPath::dijkstra()
 			{
 				dist[v] = w;
 				prev[v] = h;
+
+				if (w < min_dist)
+				{
+					min_dist = w;
+					min_v = v;
+				}
 			}
 		}
+
+		if (min_dist < std::numeric_limits<double>::infinity())
+			pq.push(min_v);
 	}
 
 	// Reconstruct the path
@@ -78,7 +89,7 @@ void GeodesicPath::dijkstra()
 		path.push_back(v);
 	std::reverse(path.begin(), path.end());
 
-	std::cout << "Length of shortest path on edges: " << dist[tgt] << std::endl;
+	std::cout << "Length of shortest path on edges (Dijkstra): " << dist[tgt] << std::endl;
 }
 
 void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
