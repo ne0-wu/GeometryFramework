@@ -112,20 +112,20 @@ void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
 
 	// Compute values for the new edge
 	double l23 = (p2 - p3).norm();
-	double ang2_13 = acos((l12 * l12 + l23 * l23 - l13 * l13) / (2 * l12 * l23));
-	double ang3_02 = acos((l03 * l03 + l23 * l23 - l02 * l02) / (2 * l03 * l23));
+	double ang2_03 = acos((l02 * l02 + l23 * l23 - l03 * l03) / (2 * l02 * l23));
+	double ang3_12 = acos((l13 * l13 + l23 * l23 - l12 * l12) / (2 * l13 * l23));
 
-	// Update the mesh
-	auto h12 = h1.next();
-	auto h03 = h0.next();
+	// Update the mesh (edge length and signpost)
+	auto h02 = h0.next();
+	auto h13 = h1.next();
 	mesh.flip(e);
 	edge_length[e] = l23;
-	auto h23 = h12.next();
-	auto h32 = h03.next();
+	auto h23 = h02.next();
+	auto h32 = h13.next();
 	assert(h23.edge() == e && h32.edge() == e);
 
-	direction[h23] = direction[h12.opp()] + ang2_13 / angle_sum[v2] * 2 * M_PI;
-	direction[h32] = direction[h03.opp()] + ang3_02 / angle_sum[v3] * 2 * M_PI;
+	direction[h23] = direction[h02.opp()] - ang2_03 / angle_sum[v2] * 2 * M_PI;
+	direction[h32] = direction[h13.opp()] - ang3_12 / angle_sum[v3] * 2 * M_PI;
 }
 
 // Flips out the left-hand-side wedge of the two halfedges
@@ -251,3 +251,7 @@ double GeodesicPath::geodesic_distance()
 		dist += edge_length[mesh.find_halfedge(path[i], path[i + 1]).edge()];
 	return dist;
 }
+
+// std::vector<Mesh::Point> GeodesicPath::geodesic_path()
+// {
+// }

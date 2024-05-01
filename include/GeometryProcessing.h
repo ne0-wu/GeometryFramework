@@ -167,7 +167,6 @@ private:
 	double eps = 1e-6;			 // Tolerance for comparing floating point numberss
 
 	std::vector<Mesh::VertexHandle> path; // The geodesic path
-	// std::vector<Mesh::HalfedgeHandle> path; // The geodesic path
 
 	// Dijkstra's algorithm
 	void dijkstra();
@@ -179,10 +178,8 @@ private:
 	OpenMesh::VProp<double> angle_sum; // For updating direction
 
 	double angle(Mesh::HalfedgeHandle h) const;
-
 	void intrinsic_flip(Mesh::EdgeHandle e);
-
 	void flip_out(int i, bool left_hand_side);
-
 	void find_geodesic_path();
+	std::vector<Mesh::Point> geodesic_path();
 };

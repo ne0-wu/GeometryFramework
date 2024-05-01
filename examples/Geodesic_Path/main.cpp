@@ -33,6 +33,7 @@ int main()
 		}
 
 	// Test
+	int num_test = 0, num_succ = 0;
 	for (auto v : grid.vertices())
 		for (auto u : grid.vertices())
 		{
@@ -40,12 +41,20 @@ int main()
 			std::cout << "pos of u: " << grid.point(u).transpose() << std::endl;
 
 			GeodesicPath geodesic_path(grid, v, u);
-			std::cout << "On-edge distance:  " << geodesic_path.on_edge_distance() << std::endl;
-			std::cout << "Geodesic distance: " << geodesic_path.geodesic_distance() << std::endl;
+			double on_edge = geodesic_path.on_edge_distance();
+			double geodeisc = geodesic_path.geodesic_distance();
+			std::cout << "On-edge distance:  " << on_edge << std::endl;
+			std::cout << "Geodesic distance: " << geodeisc << std::endl;
 
 			std::cout << "Real distance:     "
 					  << (grid.point(v) - grid.point(u)).norm() << std::endl;
+
+			if (abs(geodeisc - (grid.point(v) - grid.point(u)).norm()) < 1e-6)
+				num_succ++;
+			num_test++;
 		}
+
+	std::cout << "Tested on the grid mesh: " << num_succ << " / " << num_test << " passed\n";
 
 	return 0;
 }
