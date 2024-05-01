@@ -54,6 +54,7 @@ public:
 	GLMesh(Mesh &mesh)
 	{
 		meshPtr = std::make_shared<Mesh>(mesh);
+		shouldUpdate = true;
 		update();
 
 		initializeShader("shaders/basic.vert", "shaders/basic.frag");

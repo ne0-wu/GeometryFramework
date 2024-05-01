@@ -4,7 +4,8 @@
 
 GeodesicPath::GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Mesh::VertexHandle target)
 	: original_mesh(input_mesh), intrinsic_mesh(input_mesh), src(source), tgt(target),
-	  edge_length(intrinsic_mesh), direction(intrinsic_mesh), angle_sum(intrinsic_mesh)
+	  edge_length(intrinsic_mesh), direction(intrinsic_mesh), angle_sum(intrinsic_mesh),
+	  orig_direction(original_mesh)
 {
 	// Initialize edge length and direction properties
 	for (auto e : intrinsic_mesh.edges())
@@ -18,7 +19,10 @@ GeodesicPath::GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Me
 			angle_sum_temp += intrinsic_mesh.calc_dihedral_angle(h);
 		}
 		for (auto h : intrinsic_mesh.voh_ccw_range(v))
+		{
 			direction[h] *= 2 * M_PI / angle_sum_temp;
+			orig_direction[h] = direction[h];
+		}
 		angle_sum[v] = angle_sum_temp;
 	}
 
@@ -255,9 +259,6 @@ double GeodesicPath::geodesic_distance()
 
 std::vector<Mesh::Point> GeodesicPath::geodesic_path()
 {
-	// TODO: fix BUG
-	// currently the used direction HProp is for the intrinsic mesh
-
 	std::vector<Mesh::Point> path_points;
 
 	for (int i = 0; i < path.size() - 1; i++)
@@ -299,8 +300,8 @@ std::vector<Mesh::Point> GeodesicPath::geodesic_path()
 				OpenMesh::SmartHalfedgeHandle intersected_halfedge;
 				for (auto voh : original_mesh.voh_ccw_range(start_vertex))
 				{
-					double dir_voh = direction[voh],
-						   dir_voh_prev = direction[voh.prev().opp()];
+					double dir_voh = orig_direction[voh],
+						   dir_voh_prev = orig_direction[voh.prev().opp()];
 					// dir_voh_prev should be the next of dir_voh in the ccw order
 					if (dir_voh > dir_voh_prev)
 					{
@@ -321,7 +322,7 @@ std::vector<Mesh::Point> GeodesicPath::geodesic_path()
 				// Let p0, p1, p2 (ccw) be the three vertices of the triangle,
 				// so that p0 is the start_vertex, and p1--p2 is the intersected edge,
 				// and p3 be the intersection point.
-				double ang0_13 = fmod(dir - direction[intersected_halfedge.prev()], 2 * M_PI);
+				double ang0_13 = fmod(dir - orig_direction[intersected_halfedge.prev()], 2 * M_PI);
 				double ang1_30 = angle(intersected_halfedge);
 				double ang3_01 = M_PI - ang0_13 - ang1_30;
 				double l13 = original_mesh.calc_edge_length(intersected_halfedge.prev().edge()) * sin(ang0_13) / sin(ang3_01);
@@ -334,12 +335,12 @@ std::vector<Mesh::Point> GeodesicPath::geodesic_path()
 				if (pos_on_edge < eps)
 				{
 					start_vertex = intersected_halfedge.from();
-					dir = fmod(direction[intersected_halfedge.prev().opp()] + M_PI, 2 * M_PI);
+					dir = fmod(orig_direction[intersected_halfedge.prev().opp()] + M_PI, 2 * M_PI);
 				}
 				else if (pos_on_edge > 1 - eps)
 				{
 					start_vertex = intersected_halfedge.to();
-					dir = fmod(direction[intersected_halfedge.next()] + M_PI, 2 * M_PI);
+					dir = fmod(orig_direction[intersected_halfedge.next()] + M_PI, 2 * M_PI);
 				}
 				else
 				{
@@ -352,6 +353,7 @@ std::vector<Mesh::Point> GeodesicPath::geodesic_path()
 			break;
 			case TRACE_FROM_EDGE:
 			{
+				// TODO: finish this part
 			}
 			break;
 			}

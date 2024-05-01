@@ -11,7 +11,7 @@
 // #define IMPLEMENT_QEM_SIMPLIFICATION
 // #define IMPLEMENT_LOCAL_GLOBAL_PARA
 // #define IMPLEMENT_POISSON_RECON
-// #define IMPLEMENT_CUBIC_STYLIZATION
+#define IMPLEMENT_CUBIC_STYLIZATION
 
 class QEMSimplification
 {
@@ -160,6 +160,8 @@ public:
 	double on_edge_distance() { return dijkstra_distance; }
 	double geodesic_distance();
 
+	Mesh get_intrinsic_mesh() { return intrinsic_mesh; }
+
 private:
 	const Mesh &original_mesh;
 	Mesh intrinsic_mesh;		 // The mesh to compute geodesic path on
@@ -176,6 +178,8 @@ private:
 	OpenMesh::EProp<double> edge_length;
 	OpenMesh::HProp<double> direction;
 	OpenMesh::VProp<double> angle_sum; // For updating direction
+
+	OpenMesh::HProp<double> orig_direction;
 
 	// Computes the angle on the *from* vertex of the halfedge
 	double angle(Mesh::HalfedgeHandle h) const;
