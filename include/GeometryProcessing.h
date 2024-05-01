@@ -162,7 +162,7 @@ public:
 
 private:
 	const Mesh &original_mesh;
-	Mesh mesh;					 // The mesh to compute geodesic path on
+	Mesh intrinsic_mesh;		 // The mesh to compute geodesic path on
 	Mesh::VertexHandle src, tgt; // Source and target vertices
 	double eps = 1e-6;			 // Tolerance for comparing floating point numberss
 
@@ -177,9 +177,16 @@ private:
 	OpenMesh::HProp<double> direction;
 	OpenMesh::VProp<double> angle_sum; // For updating direction
 
+	// Computes the angle on the *from* vertex of the halfedge
 	double angle(Mesh::HalfedgeHandle h) const;
+
+	// Intrinsicly flips the edge
 	void intrinsic_flip(Mesh::EdgeHandle e);
+
+	// Find the geodesic path by flipping edges
 	void flip_out(int i, bool left_hand_side);
 	void find_geodesic_path();
+
+	// Extract the geodesic path
 	std::vector<Mesh::Point> geodesic_path();
 };

@@ -3,21 +3,21 @@
 #include "GeometryProcessing.h"
 
 GeodesicPath::GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Mesh::VertexHandle target)
-	: original_mesh(input_mesh), mesh(input_mesh), src(source), tgt(target),
-	  edge_length(mesh), direction(mesh), angle_sum(mesh)
+	: original_mesh(input_mesh), intrinsic_mesh(input_mesh), src(source), tgt(target),
+	  edge_length(intrinsic_mesh), direction(intrinsic_mesh), angle_sum(intrinsic_mesh)
 {
 	// Initialize edge length and direction properties
-	for (auto e : mesh.edges())
-		edge_length[e] = mesh.calc_edge_length(e);
-	for (auto v : mesh.vertices())
+	for (auto e : intrinsic_mesh.edges())
+		edge_length[e] = intrinsic_mesh.calc_edge_length(e);
+	for (auto v : intrinsic_mesh.vertices())
 	{
 		double angle_sum_temp = 0.0;
-		for (auto h : mesh.voh_ccw_range(v)) // out-going halfedges around v in counter-clockwise order
+		for (auto h : intrinsic_mesh.voh_ccw_range(v)) // out-going halfedges around v in counter-clockwise order
 		{
 			direction[h] = angle_sum_temp;
-			angle_sum_temp += mesh.calc_dihedral_angle(h);
+			angle_sum_temp += intrinsic_mesh.calc_dihedral_angle(h);
 		}
-		for (auto h : mesh.voh_ccw_range(v))
+		for (auto h : intrinsic_mesh.voh_ccw_range(v))
 			direction[h] *= 2 * M_PI / angle_sum_temp;
 		angle_sum[v] = angle_sum_temp;
 	}
@@ -28,18 +28,18 @@ GeodesicPath::GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Me
 // Returns the angle at the *from* vertex of the halfedge
 double GeodesicPath::angle(Mesh::HalfedgeHandle h) const
 {
-	double l0 = edge_length[mesh.edge_handle(h)],
-		   l1 = edge_length[mesh.edge_handle(mesh.next_halfedge_handle(h))],
-		   l2 = edge_length[mesh.edge_handle(mesh.prev_halfedge_handle(h))];
+	double l0 = edge_length[intrinsic_mesh.edge_handle(h)],
+		   l1 = edge_length[intrinsic_mesh.edge_handle(intrinsic_mesh.next_halfedge_handle(h))],
+		   l2 = edge_length[intrinsic_mesh.edge_handle(intrinsic_mesh.prev_halfedge_handle(h))];
 	return acos((l0 * l0 + l2 * l2 - l1 * l1) / (2 * l0 * l2));
 }
 
 void GeodesicPath::dijkstra()
 {
-	OpenMesh::VProp<double> dist(mesh);
-	OpenMesh::VProp<Mesh::HalfedgeHandle> prev(mesh);
+	OpenMesh::VProp<double> dist(intrinsic_mesh);
+	OpenMesh::VProp<Mesh::HalfedgeHandle> prev(intrinsic_mesh);
 
-	for (auto v : mesh.vertices())
+	for (auto v : intrinsic_mesh.vertices())
 		dist[v] = std::numeric_limits<double>::infinity();
 	dist[src] = 0;
 
@@ -55,7 +55,7 @@ void GeodesicPath::dijkstra()
 		auto u = pq.top();
 		pq.pop();
 
-		for (auto h : mesh.voh_range(u))
+		for (auto h : intrinsic_mesh.voh_range(u))
 		{
 			auto v = h.to();
 			double alt_dist = dist[u] + edge_length[h.edge()];
@@ -71,7 +71,7 @@ void GeodesicPath::dijkstra()
 	// Reconstruct the path
 	assert(dist[tgt] < std::numeric_limits<double>::infinity());
 	path.clear();
-	for (auto v = tgt; v != src; v = mesh.from_vertex_handle(prev[v]))
+	for (auto v = tgt; v != src; v = intrinsic_mesh.from_vertex_handle(prev[v]))
 		path.push_back(v);
 	path.push_back(src);
 	std::reverse(path.begin(), path.end());
@@ -81,8 +81,8 @@ void GeodesicPath::dijkstra()
 
 void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
 {
-	auto h0 = mesh.smart_halfedge_handle(e, 0);
-	auto h1 = mesh.smart_halfedge_handle(e, 1);
+	auto h0 = intrinsic_mesh.smart_halfedge_handle(e, 0);
+	auto h1 = intrinsic_mesh.smart_halfedge_handle(e, 1);
 
 	// Edge v0--v1 will be flipped to v2--v3
 	auto v0 = h0.to();
@@ -118,14 +118,14 @@ void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
 	// Update the mesh (edge length and signpost)
 	auto h02 = h0.next();
 	auto h13 = h1.next();
-	mesh.flip(e);
+	intrinsic_mesh.flip(e);
 	edge_length[e] = l23;
 	auto h23 = h02.next();
 	auto h32 = h13.next();
 	assert(h23.edge() == e && h32.edge() == e);
 
-	direction[h23] = direction[h02.opp()] - ang2_03 / angle_sum[v2] * 2 * M_PI;
-	direction[h32] = direction[h13.opp()] - ang3_12 / angle_sum[v3] * 2 * M_PI;
+	direction[h23] = fmod(direction[h02.opp()] - ang2_03 / angle_sum[v2] * 2 * M_PI, 2 * M_PI);
+	direction[h32] = fmod(direction[h13.opp()] - ang3_12 / angle_sum[v3] * 2 * M_PI, 2 * M_PI);
 }
 
 // Flips out the left-hand-side wedge of the two halfedges
@@ -136,13 +136,13 @@ void GeodesicPath::flip_out(int i, bool left_hand_side)
 	OpenMesh::SmartHalfedgeHandle h0, h1;
 	if (left_hand_side)
 	{
-		h0 = mesh.find_halfedge(path[i - 1], path[i]);
-		h1 = mesh.find_halfedge(path[i], path[i + 1]);
+		h0 = intrinsic_mesh.find_halfedge(path[i - 1], path[i]);
+		h1 = intrinsic_mesh.find_halfedge(path[i], path[i + 1]);
 	}
 	else
 	{
-		h0 = mesh.find_halfedge(path[i + 1], path[i]);
-		h1 = mesh.find_halfedge(path[i], path[i - 1]);
+		h0 = intrinsic_mesh.find_halfedge(path[i + 1], path[i]);
+		h1 = intrinsic_mesh.find_halfedge(path[i], path[i - 1]);
 	}
 
 	// Find the first edge with beta < pi to flip
@@ -161,7 +161,7 @@ void GeodesicPath::flip_out(int i, bool left_hand_side)
 			if (beta < M_PI - eps)
 			{
 				should_flip = true;
-				edge_to_flip = mesh.edge_handle(h);
+				edge_to_flip = intrinsic_mesh.edge_handle(h);
 				break;
 			}
 		}
@@ -198,41 +198,42 @@ void GeodesicPath::find_geodesic_path()
 		bool left_hand_side = true; // which wedge to flip out
 		for (int i = 1; i < path.size() - 1; i++)
 		{
-			auto h0 = mesh.find_halfedge(path[i - 1], path[i]);
-			auto h1 = mesh.find_halfedge(path[i], path[i + 1]);
+			auto h0 = intrinsic_mesh.find_halfedge(path[i - 1], path[i]);
+			auto h1 = intrinsic_mesh.find_halfedge(path[i], path[i + 1]);
 
-			double diff_rght = 0, diff_left = 0;
+			double wedge_angle_rght = 0,
+				   wedge_angle_left = 0;
 
 			for (auto h = h0; h.opp() != h1; h = h.next().opp())
 			{
 				if (h.is_boundary()) // Flip-out cannot be performed if the wedge contains a boundary
 				{
-					diff_left = std::numeric_limits<double>::infinity();
+					wedge_angle_left = std::numeric_limits<double>::infinity();
 					break;
 				}
-				diff_left += angle(h.next());
+				wedge_angle_left += angle(h.next());
 			}
 
 			for (auto h = h1.opp(); h != h0; h = h.next().opp())
 			{
 				if (h.is_boundary())
 				{
-					diff_rght = std::numeric_limits<double>::infinity();
+					wedge_angle_rght = std::numeric_limits<double>::infinity();
 					break;
 				}
-				diff_rght += angle(h.next());
+				wedge_angle_rght += angle(h.next());
 			}
 
 			// If all wedge angles > pi,
 			// then min_wedge_angle == infinity, and the loop is terminated
-			if (diff_rght > M_PI - eps && diff_left > M_PI - eps)
+			if (wedge_angle_rght > M_PI - eps && wedge_angle_left > M_PI - eps)
 				continue;
 
-			if (std::min(diff_rght, diff_left) < min_wedge_angle)
+			if (std::min(wedge_angle_rght, wedge_angle_left) < min_wedge_angle)
 			{
-				min_wedge_angle = std::min(diff_rght, diff_left);
+				min_wedge_angle = std::min(wedge_angle_rght, wedge_angle_left);
 				min_idx = i;
-				left_hand_side = diff_left < diff_rght;
+				left_hand_side = wedge_angle_left < wedge_angle_rght;
 			}
 		}
 
@@ -248,10 +249,114 @@ double GeodesicPath::geodesic_distance()
 
 	double dist = 0;
 	for (int i = 0; i < path.size() - 1; i++)
-		dist += edge_length[mesh.find_halfedge(path[i], path[i + 1]).edge()];
+		dist += edge_length[intrinsic_mesh.find_halfedge(path[i], path[i + 1]).edge()];
 	return dist;
 }
 
-// std::vector<Mesh::Point> GeodesicPath::geodesic_path()
-// {
-// }
+std::vector<Mesh::Point> GeodesicPath::geodesic_path()
+{
+	// TODO: fix BUG
+	// currently the used direction HProp is for the intrinsic mesh
+
+	std::vector<Mesh::Point> path_points;
+
+	for (int i = 0; i < path.size() - 1; i++)
+	{
+		// Trace the path v0->v1 on the original mesh
+		auto v0 = path[i], v1 = path[i + 1];
+		auto h = intrinsic_mesh.find_halfedge(v0, v1);
+
+		auto p0 = intrinsic_mesh.point(v0), p1 = intrinsic_mesh.point(v1);
+		path_points.push_back(p0);
+
+		// Check if v0 and v1 are connected in the original mesh
+		if (original_mesh.find_halfedge(v0, v1).is_valid())
+		{
+			path_points.push_back(p1);
+			continue;
+		}
+
+		// Start tracing
+		enum TraceType
+		{
+			TRACE_FROM_VERTEX,
+			TRACE_FROM_EDGE
+		} trace_type = TRACE_FROM_VERTEX;
+
+		Mesh::VertexHandle start_vertex = v0;
+		Mesh::HalfedgeHandle start_edge;
+		double pos_on_edge;
+		double dir = direction[h];
+		bool has_reached_v1 = false;
+
+		while (!has_reached_v1)
+		{
+			switch (trace_type)
+			{
+			case TRACE_FROM_VERTEX:
+			{
+				// Find the intersected halfedge
+				OpenMesh::SmartHalfedgeHandle intersected_halfedge;
+				for (auto voh : original_mesh.voh_ccw_range(start_vertex))
+				{
+					double dir_voh = direction[voh],
+						   dir_voh_prev = direction[voh.prev().opp()];
+					// dir_voh_prev should be the next of dir_voh in the ccw order
+					if (dir_voh > dir_voh_prev)
+					{
+						if (dir >= dir_voh || dir < dir_voh_prev)
+						{
+							intersected_halfedge = voh;
+							break;
+						}
+					}
+					else if (dir_voh <= dir && dir < dir_voh_prev)
+					{
+						intersected_halfedge = voh.next();
+						break;
+					}
+				}
+
+				// Find the intersection point
+				// Let p0, p1, p2 (ccw) be the three vertices of the triangle,
+				// so that p0 is the start_vertex, and p1--p2 is the intersected edge,
+				// and p3 be the intersection point.
+				double ang0_13 = fmod(dir - direction[intersected_halfedge.prev()], 2 * M_PI);
+				double ang1_30 = angle(intersected_halfedge);
+				double ang3_01 = M_PI - ang0_13 - ang1_30;
+				double l13 = original_mesh.calc_edge_length(intersected_halfedge.prev().edge()) * sin(ang0_13) / sin(ang3_01);
+
+				pos_on_edge = l13 / original_mesh.calc_edge_length(intersected_halfedge.prev().edge());
+				assert(pos_on_edge <= 1);
+
+				// Prepare for the next step
+
+				if (pos_on_edge < eps)
+				{
+					start_vertex = intersected_halfedge.from();
+					dir = fmod(direction[intersected_halfedge.prev().opp()] + M_PI, 2 * M_PI);
+				}
+				else if (pos_on_edge > 1 - eps)
+				{
+					start_vertex = intersected_halfedge.to();
+					dir = fmod(direction[intersected_halfedge.next()] + M_PI, 2 * M_PI);
+				}
+				else
+				{
+					trace_type = TRACE_FROM_EDGE;
+
+					dir = ang0_13 + ang1_30;
+					start_edge = intersected_halfedge.opp();
+				}
+			}
+			break;
+			case TRACE_FROM_EDGE:
+			{
+			}
+			break;
+			}
+		}
+	}
+
+	return path_points;
+}
