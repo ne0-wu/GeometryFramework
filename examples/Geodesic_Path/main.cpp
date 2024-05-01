@@ -10,37 +10,41 @@
 
 int main()
 {
-	Mesh mesh("meshes/spot_quadrangulated.obj");
+	// Test on a grid mesh
+	// -------------------
+	int n = 5;
 
-	auto v0 = mesh.vertex_handle(0);
+	// Build up the grid mesh
+	Mesh grid;
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+			grid.add_vertex(Mesh::Point(i, j, 0));
 
-	// for (auto v : mesh.vv_range(v0))
-	// {
-	// 	std::cout << v.idx() << ", ";
-	// }
-
-	// for (int i = 0; i < 1; i++)
-	// 	for (int j : {1165, 1158, 1159, 812, 813, 767, 768, 764})
-	// 	{
-	// 		std::cout << "i: " << i << " j: " << j << std::endl;
-
-	// 		Mesh::VertexHandle start = mesh.vertex_handle(i);
-	// 		Mesh::VertexHandle end = mesh.vertex_handle(j);
-	// 		GeodesicPath geodesic_path(mesh, start, end);
-
-	// 		std::cout << "Geodesic distance: " << geodesic_path.geodesic_distance() << std::endl;
-	// 	}
-
-	for (int i = 200; i < 300; i++)
-		for (int j = 200; j < 300; j++)
+	for (int i = 0; i < n - 1; ++i)
+		for (int j = 0; j < n - 1; ++j)
 		{
-			std::cout << "i: " << i << " j: " << j << std::endl;
+			auto v0 = grid.vertex_handle(i * n + j);
+			auto v1 = grid.vertex_handle((i + 1) * n + j);
+			auto v2 = grid.vertex_handle((i + 1) * n + (j + 1));
+			auto v3 = grid.vertex_handle(i * n + (j + 1));
 
-			Mesh::VertexHandle start = mesh.vertex_handle(i);
-			Mesh::VertexHandle end = mesh.vertex_handle(j);
-			GeodesicPath geodesic_path(mesh, start, end);
+			grid.add_face(v0, v1, v2);
+			grid.add_face(v0, v2, v3);
+		}
 
+	// Test
+	for (auto v : grid.vertices())
+		for (auto u : grid.vertices())
+		{
+			std::cout << "pos of v: " << grid.point(v).transpose() << std::endl;
+			std::cout << "pos of u: " << grid.point(u).transpose() << std::endl;
+
+			GeodesicPath geodesic_path(grid, v, u);
+			std::cout << "On-edge distance:  " << geodesic_path.on_edge_distance() << std::endl;
 			std::cout << "Geodesic distance: " << geodesic_path.geodesic_distance() << std::endl;
+
+			std::cout << "Real distance:     "
+					  << (grid.point(v) - grid.point(u)).norm() << std::endl;
 		}
 
 	return 0;

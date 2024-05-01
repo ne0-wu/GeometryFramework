@@ -157,18 +157,21 @@ class GeodesicPath
 {
 public:
 	GeodesicPath(Mesh const &input_mesh, Mesh::VertexHandle source, Mesh::VertexHandle target);
+	double on_edge_distance() { return dijkstra_distance; }
 	double geodesic_distance();
 
 private:
 	const Mesh &original_mesh;
 	Mesh mesh;					 // The mesh to compute geodesic path on
 	Mesh::VertexHandle src, tgt; // Source and target vertices
+	double eps = 1e-6;			 // Tolerance for comparing floating point numberss
 
 	std::vector<Mesh::VertexHandle> path; // The geodesic path
 	// std::vector<Mesh::HalfedgeHandle> path; // The geodesic path
 
 	// Dijkstra's algorithm
 	void dijkstra();
+	double dijkstra_distance;
 
 	// Signpost data structure
 	OpenMesh::EProp<double> edge_length;

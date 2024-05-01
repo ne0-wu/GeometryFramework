@@ -23,6 +23,7 @@ struct MyTraits : public OpenMesh::DefaultTraits
 class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MyTraits>
 {
 public:
+	Mesh() {}
 	Mesh(const std::string &filename);
 	Mesh(const std::vector<double> &vertexList, const std::vector<unsigned int> &faceList);
 

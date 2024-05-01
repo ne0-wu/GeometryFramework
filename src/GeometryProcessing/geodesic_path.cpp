@@ -58,10 +58,10 @@ void GeodesicPath::dijkstra()
 		for (auto h : mesh.voh_range(u))
 		{
 			auto v = h.to();
-			auto w = dist[u] + edge_length[h.edge()];
-			if (w < dist[v])
+			double alt_dist = dist[u] + edge_length[h.edge()];
+			if (alt_dist < dist[v])
 			{
-				dist[v] = w;
+				dist[v] = alt_dist;
 				prev[v] = h;
 				pq.push(v);
 			}
@@ -76,7 +76,7 @@ void GeodesicPath::dijkstra()
 	path.push_back(src);
 	std::reverse(path.begin(), path.end());
 
-	std::cout << "Length of shortest path on edges (Dijkstra): " << dist[tgt] << std::endl;
+	dijkstra_distance = dist[tgt];
 }
 
 void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
@@ -131,6 +131,8 @@ void GeodesicPath::intrinsic_flip(Mesh::EdgeHandle e)
 // Flips out the left-hand-side wedge of the two halfedges
 void GeodesicPath::flip_out(int i, bool left_hand_side)
 {
+	// Decide which side of the wedge to flip out
+	// ------------------------------------------
 	OpenMesh::SmartHalfedgeHandle h0, h1;
 	if (left_hand_side)
 	{
@@ -144,6 +146,7 @@ void GeodesicPath::flip_out(int i, bool left_hand_side)
 	}
 
 	// Find the first edge with beta < pi to flip
+	// ------------------------------------------
 	bool should_flip = true;
 	double beta = 0;
 
@@ -155,7 +158,7 @@ void GeodesicPath::flip_out(int i, bool left_hand_side)
 		for (auto h = h0.next().opp(); h.opp() != h1; h = h.next().opp())
 		{
 			beta = angle(h) + angle(h.opp().next());
-			if (beta < M_PI)
+			if (beta < M_PI - eps)
 			{
 				should_flip = true;
 				edge_to_flip = mesh.edge_handle(h);
@@ -168,10 +171,14 @@ void GeodesicPath::flip_out(int i, bool left_hand_side)
 	}
 
 	// Update the path
+	// ---------------
+	// Remove the vertex i in the old path
+	path.erase(path.begin() + i, path.begin() + i + 1);
+	// Construct the new path
 	std::vector<Mesh::VertexHandle> new_path;
 	for (auto h = h0.next().opp(); h.opp() != h1; h = h.next().opp())
 		new_path.push_back(h.from());
-	path.erase(path.begin() + i, path.begin() + i + 1);
+	// Insert the new path into the old path
 	if (left_hand_side)
 		path.insert(path.begin() + i, new_path.begin(), new_path.end());
 	else
@@ -180,9 +187,8 @@ void GeodesicPath::flip_out(int i, bool left_hand_side)
 
 void GeodesicPath::find_geodesic_path()
 {
-	// std::vector<double> wedge_angles(path.size() - 1);
+	// Find the wedge with the smallest angle < pi, and flip it out
 	double min_wedge_angle = 0;
-
 	while (min_wedge_angle < std::numeric_limits<double>::infinity())
 	{
 		min_wedge_angle = std::numeric_limits<double>::infinity();
@@ -192,32 +198,36 @@ void GeodesicPath::find_geodesic_path()
 		bool left_hand_side = true; // which wedge to flip out
 		for (int i = 1; i < path.size() - 1; i++)
 		{
-			// auto h0 = path[i];
-			// auto h1 = path[i + 1];
 			auto h0 = mesh.find_halfedge(path[i - 1], path[i]);
 			auto h1 = mesh.find_halfedge(path[i], path[i + 1]);
-			// double diff_rght = direction[h1] - direction[h0.opp()],
-			// 	   diff_left = direction[h0.opp()] - direction[h1];
-			// while (diff_rght < 0)
-			// 	diff_rght += 2 * M_PI;
-			// while (diff_rght > 2 * M_PI)
-			// 	diff_rght -= 2 * M_PI;
-			// while (diff_left < 0)
-			// 	diff_left += 2 * M_PI;
-			// while (diff_left > 2 * M_PI)
-			// 	diff_left -= 2 * M_PI;
+
 			double diff_rght = 0, diff_left = 0;
 
 			for (auto h = h0; h.opp() != h1; h = h.next().opp())
+			{
+				if (h.is_boundary()) // Flip-out cannot be performed if the wedge contains a boundary
+				{
+					diff_left = std::numeric_limits<double>::infinity();
+					break;
+				}
 				diff_left += angle(h.next());
+			}
 
 			for (auto h = h1.opp(); h != h0; h = h.next().opp())
+			{
+				if (h.is_boundary())
+				{
+					diff_rght = std::numeric_limits<double>::infinity();
+					break;
+				}
 				diff_rght += angle(h.next());
+			}
 
-			// diff_rght = diff_rght * angle_sum[path[i]] / (2 * M_PI);
-			// diff_left = diff_left * angle_sum[path[i]] / (2 * M_PI);
-			if (diff_rght > M_PI && diff_left > M_PI)
+			// If all wedge angles > pi,
+			// then min_wedge_angle == infinity, and the loop is terminated
+			if (diff_rght > M_PI - eps && diff_left > M_PI - eps)
 				continue;
+
 			if (std::min(diff_rght, diff_left) < min_wedge_angle)
 			{
 				min_wedge_angle = std::min(diff_rght, diff_left);
@@ -235,6 +245,7 @@ void GeodesicPath::find_geodesic_path()
 double GeodesicPath::geodesic_distance()
 {
 	find_geodesic_path();
+
 	double dist = 0;
 	for (int i = 0; i < path.size() - 1; i++)
 		dist += edge_length[mesh.find_halfedge(path[i], path[i + 1]).edge()];
