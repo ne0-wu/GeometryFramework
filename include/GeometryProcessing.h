@@ -8,10 +8,10 @@
 #include "Mesh.h"
 #include "PointCloud.h"
 
-// #define IMPLEMENT_QEM_SIMPLIFICATION
+#define IMPLEMENT_QEM_SIMPLIFICATION
 // #define IMPLEMENT_LOCAL_GLOBAL_PARA
 // #define IMPLEMENT_POISSON_RECON
-#define IMPLEMENT_CUBIC_STYLIZATION
+// #define IMPLEMENT_CUBIC_STYLIZATION
 
 class QEMSimplification
 {
@@ -41,6 +41,29 @@ private:
 	QEM optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q);
 
 	void collapse1Edge();
+};
+
+class SpectralSimplification
+{
+public:
+	SpectralSimplification(Mesh &input_mesh, int k = 100);
+
+	void simplify(int targetNumVertices);
+	Mesh &getMesh() { return mesh; };
+
+private:
+	Mesh mesh; // The mesh to simplify
+	int k;	   // num of eigenvalues to keep
+
+	Eigen::MatrixXd F;			   // Eigenvectors of the Laplacian
+	Eigen::SparseMatrix<double> L; // Laplacian matrix
+	Eigen::SparseMatrix<double> M; // diagonal mass matrix
+
+	void compute_eigenvectors();
+	void collapse1edge();
+
+	Eigen::SparseMatrix<double> laplacian_matrix(Mesh const &mesh);
+	Eigen::SparseMatrix<double> diagonal_mass_matrix(Mesh const &mesh);
 };
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);

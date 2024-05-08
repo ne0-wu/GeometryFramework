@@ -1,4 +1,5 @@
 # add_subdirectory(Local-Global_Parameterization)
 # add_subdirectory(QEM_Simplification)
 # add_subdirectory(Cubic_Stylization)
-add_subdirectory(Geodesic_Path)
+# add_subdirectory(Geodesic_Path)
+add_subdirectory(Spectral_Simplification)
