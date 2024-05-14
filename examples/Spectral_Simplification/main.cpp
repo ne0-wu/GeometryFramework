@@ -15,10 +15,13 @@ int main()
 	Scene scene;
 	scene.window = window.window;
 
-	Mesh originalMesh("meshes/spot_quadrangulated.obj");
+	Mesh originalMesh("meshes/spot_simplified.obj");
 	originalMesh.fitIntoUnitBall();
 
 	SpectralSimplification sp_simp(originalMesh);
+
+	sp_simp.simplify(originalMesh.n_vertices() / 2);
+	sp_simp.getMesh().save("output.obj");
 
 	Mesh mesh = originalMesh;
 	scene.addMesh(GLMesh(mesh));
@@ -57,20 +60,20 @@ int main()
 
 		window.swapBuffers();
 
-		if (numVert < mesh.n_vertices())
-		{
-			QEMSimplification qem(mesh);
-			qem.simplify(numVert);
-			mesh = qem.getMesh();
-			scene.glMeshes[0].setMesh(std::make_shared<Mesh>(mesh));
-		}
-		if (numVert > mesh.n_vertices())
-		{
-			QEMSimplification qem(originalMesh);
-			qem.simplify(numVert);
-			mesh = qem.getMesh();
-			scene.glMeshes[0].setMesh(std::make_shared<Mesh>(mesh));
-		}
+		// if (numVert < mesh.n_vertices())
+		// {
+		// 	QEMSimplification qem(mesh);
+		// 	qem.simplify(numVert);
+		// 	mesh = qem.getMesh();
+		// 	scene.glMeshes[0].setMesh(std::make_shared<Mesh>(mesh));
+		// }
+		// if (numVert > mesh.n_vertices())
+		// {
+		// 	QEMSimplification qem(originalMesh);
+		// 	qem.simplify(numVert);
+		// 	mesh = qem.getMesh();
+		// 	scene.glMeshes[0].setMesh(std::make_shared<Mesh>(mesh));
+		// }
 	}
 
 	return 0;

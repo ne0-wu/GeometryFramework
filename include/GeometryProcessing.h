@@ -38,7 +38,7 @@ private:
 	OpenMesh::EProp<QEM> QEMs;			 // Quadric error on each edge
 
 	Eigen::Matrix4d quadricErrorMatrix(Mesh::VertexHandle v);
-	QEM optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q);
+	QEM calc_cost(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q);
 
 	void collapse1Edge();
 };
@@ -48,22 +48,41 @@ class SpectralSimplification
 public:
 	SpectralSimplification(Mesh &input_mesh, int k = 100);
 
-	void simplify(int targetNumVertices);
+	void simplify(int target_num_vertices);
 	Mesh &getMesh() { return mesh; };
 
 private:
+	struct SPM // Spectral Preserving Metric
+	{
+		Eigen::SparseMatrix<double> Q; // Restriction matrix on each step
+		double cost = std::numeric_limits<double>::infinity();
+		std::vector<Mesh::VertexHandle> H; // {u, v} U N(u) U N(v)
+		std::vector<double> E_H;		   // E of vertices in H
+
+		bool operator<(const SPM &rhs) const { return cost < rhs.cost; }
+	};
+
 	Mesh mesh; // The mesh to simplify
 	int k;	   // num of eigenvalues to keep
 
+	Eigen::MatrixXd P;			   // Restriction matrix
 	Eigen::MatrixXd F;			   // Eigenvectors of the Laplacian
+	Eigen::MatrixXd Z;			   // M^-1 * L * F
 	Eigen::SparseMatrix<double> L; // Laplacian matrix
-	Eigen::SparseMatrix<double> M; // diagonal mass matrix
+	Eigen::SparseMatrix<double> M; // Diagonal mass matrix
+
+	OpenMesh::VProp<double> E; // metric on each vertex
+	OpenMesh::EProp<SPM> SPMs; // metric on each vertex
 
 	void compute_eigenvectors();
-	void collapse1edge();
+
+	SPM calc_cost(Mesh::HalfedgeHandle h);
+
+	void collapse_edge();
 
 	Eigen::SparseMatrix<double> laplacian_matrix(Mesh const &mesh);
 	Eigen::SparseMatrix<double> diagonal_mass_matrix(Mesh const &mesh);
+	Eigen::SparseMatrix<double> diagonal_mass_matrix_inv(const Mesh &mesh);
 };
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);

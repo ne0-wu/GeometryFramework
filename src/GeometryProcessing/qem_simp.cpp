@@ -27,7 +27,7 @@ Eigen::Matrix4d QEMSimplification::quadricErrorMatrix(Mesh::VertexHandle v)
 	return Q;
 }
 
-QEMSimplification::QEM QEMSimplification::optimalPlacement(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q)
+QEMSimplification::QEM QEMSimplification::calc_cost(Mesh::HalfedgeHandle edge, Eigen::Matrix4d Q)
 {
 	Eigen::Matrix4d A = Q;
 	A.block<1, 3>(3, 0) = Eigen::Vector3d(0, 0, 0).transpose();
@@ -71,7 +71,7 @@ QEMSimplification::QEMSimplification(Mesh &input_mesh) : mesh(input_mesh), Qs(me
 		if (!mesh.is_collapse_ok(eh.halfedge()))
 			continue;
 
-		QEMs[eh] = optimalPlacement(eh.halfedge(), Qs[eh.halfedge().to()] + Qs[eh.halfedge().from()]);
+		QEMs[eh] = calc_cost(eh.halfedge(), Qs[eh.halfedge().to()] + Qs[eh.halfedge().from()]);
 	}
 }
 
@@ -105,7 +105,7 @@ void QEMSimplification::collapse1Edge()
 	for (auto voh : mesh.voh_range(vh2))
 		for (auto heh : mesh.voh_range(voh.to()))
 			if (mesh.is_collapse_ok(heh))
-				QEMs[heh.edge()] = optimalPlacement(heh, Qs[heh.to()] + Qs[heh.from()]);
+				QEMs[heh.edge()] = calc_cost(heh, Qs[heh.to()] + Qs[heh.from()]);
 }
 
 void QEMSimplification::simplify(int targetNumVertices)
