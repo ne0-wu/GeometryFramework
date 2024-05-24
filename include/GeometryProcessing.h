@@ -62,14 +62,15 @@ private:
 		bool operator<(const SPM &rhs) const { return cost < rhs.cost; }
 	};
 
-	Mesh mesh; // The mesh to simplify
-	int k;	   // num of eigenvalues to keep
+	Mesh mesh;				   // The mesh to simplify
+	int num_vertices_original; // The number of vertices in the original mesh
+	int k;					   // num of eigenvalues to keep
 
-	Eigen::MatrixXd P;			   // Restriction matrix
-	Eigen::MatrixXd F;			   // Eigenvectors of the Laplacian
-	Eigen::MatrixXd Z;			   // M^-1 * L * F
-	Eigen::SparseMatrix<double> L; // Laplacian matrix
-	Eigen::SparseMatrix<double> M; // Diagonal mass matrix
+	Eigen::MatrixXd P;								 // Restriction matrix
+	Eigen::MatrixXd F;								 // Eigenvectors of the Laplacian
+	Eigen::MatrixXd Z;								 // M^-1 * L * F
+	Eigen::SparseMatrix<double> L;					 // Laplacian matrix
+	Eigen::DiagonalMatrix<double, Eigen::Dynamic> M; // Diagonal mass matrix
 
 	OpenMesh::VProp<double> E; // metric on each vertex
 	OpenMesh::EProp<SPM> SPMs; // metric on each vertex
@@ -81,8 +82,8 @@ private:
 	void collapse_edge();
 
 	Eigen::SparseMatrix<double> laplacian_matrix(Mesh const &mesh);
-	Eigen::SparseMatrix<double> diagonal_mass_matrix(Mesh const &mesh);
-	Eigen::SparseMatrix<double> diagonal_mass_matrix_inv(const Mesh &mesh);
+	Eigen::SparseMatrix<double> local_laplacian_matrix(const Mesh &mesh, std::vector<Mesh::VertexHandle> query_vertices);
+	Eigen::DiagonalMatrix<double, Eigen::Dynamic> diagonal_mass_matrix(Mesh const &mesh);
 };
 
 void poissonSurfaceReconstruction(PointCloud &pointCloud);
