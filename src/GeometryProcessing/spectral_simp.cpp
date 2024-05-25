@@ -115,12 +115,9 @@ SpectralSimplification::SpectralSimplification(Mesh &input_mesh, int k)
 	// Compute the metric for each edge
 	TickTock tt("calculate cost on all edges");
 	for (auto e : mesh.edges())
-	{
-		if (!mesh.is_collapse_ok(e.halfedge()))
-			continue;
+		if (mesh.is_collapse_ok(e.halfedge()))
+			SPMs[e] = calc_cost(e.halfedge());
 
-		SPMs[e] = calc_cost(e.halfedge());
-	}
 	tt.tock();
 
 	P = Eigen::MatrixXd::Identity(num_vertices_original, num_vertices_original);
@@ -174,6 +171,7 @@ SpectralSimplification::SPM SpectralSimplification::calc_cost(Mesh::HalfedgeHand
 	double cost = 0;
 	for (int i = 0; i < H.size(); ++i)
 		cost += E_H_after[i] - E[H[i]];
+	cost -= E[fr];
 
 	return {Q, cost, H, E_H_after};
 }
@@ -194,20 +192,19 @@ void SpectralSimplification::collapse_edge()
 		}
 	}
 
-	Mesh::VertexHandle remaining_vertex = mesh.to_vertex_handle(mesh.halfedge_handle(min_edge));
-	mesh.set_point(remaining_vertex, (mesh.point(mesh.from_vertex_handle(mesh.halfedge_handle(min_edge))) + mesh.point(remaining_vertex)) / 2);
+	Mesh::VertexHandle to = mesh.to_vertex_handle(mesh.halfedge_handle(min_edge)),
+					   fr = mesh.from_vertex_handle(mesh.halfedge_handle(min_edge));
+	mesh.set_point(to, (mesh.point(fr) + mesh.point(to)) / 2);
 
 	mesh.collapse(mesh.halfedge_handle(min_edge));
+	mesh.garbage_collection();
 
 	// update affected vertices
-	// for (auto v : SPMs[min_edge].H)
-	// 	E[v] = SPMs[min_edge].E_H[v.idx()];
-
 	for (int i = 0; i < SPMs[min_edge].H.size(); ++i)
 		E[SPMs[min_edge].H[i]] = SPMs[min_edge].E_H[i];
 
 	// update affected edges
-	for (auto voh : mesh.voh_range(remaining_vertex))
+	for (auto voh : mesh.voh_range(to))
 		for (auto he : mesh.voh_range(voh.to()))
 			if (mesh.is_collapse_ok(he))
 				SPMs[he.edge()] = calc_cost(he);

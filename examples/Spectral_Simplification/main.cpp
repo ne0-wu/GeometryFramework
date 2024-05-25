@@ -10,8 +10,7 @@
 
 int main()
 {
-	Mesh originalMesh("meshes/spot_quadrangulated.obj");
-	originalMesh.fitIntoUnitBall();
+	Mesh originalMesh("meshes/spot_simplified_2.obj");
 
 	SpectralSimplification sp_simp(originalMesh, 100);
 
